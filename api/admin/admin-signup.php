@@ -11,14 +11,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO admin (name, username, password) VALUES ('$name', '$username', '$password')";
+    // Prepare and bind
+    $stmt = $conn->prepare("INSERT INTO admin (name, username, password) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $name, $username, $password);
 
-    if ($conn->query($sql) === TRUE) {
+    if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Sign up successful']);
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'Error: ' . $conn->error]);
+        echo json_encode(['status' => 'error', 'message' => 'Error: ' . $stmt->error]);
     }
 
+    $stmt->close();
     $conn->close();
 }
 ?>
