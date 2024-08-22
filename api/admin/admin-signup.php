@@ -26,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $conn->close();
 }
 */
-<?php
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -34,10 +33,12 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $username = $_POST['username'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+$data = json_decode(file_get_contents('php://input'), true);
+
+if ($data && isset($data['name'], $data['username'], $data['password'])) {
+    $name = $data['name'];
+    $username = $data['username'];
+    $password = password_hash($data['password'], PASSWORD_DEFAULT);
 
     // Prepare and bind
     $stmt = $conn->prepare("INSERT INTO admin (name, username, password) VALUES (?, ?, ?)");
@@ -51,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $stmt->close();
     $conn->close();
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
 }
 ?>
 
-
-?>
