@@ -40,7 +40,6 @@ if ($data && isset($data['name'], $data['username'], $data['password'])) {
     $username = $data['username'];
     $password = password_hash($data['password'], PASSWORD_DEFAULT);
 
-    // Prepare and bind
     $stmt = $conn->prepare("INSERT INTO admin (name, username, password) VALUES (?, ?, ?)");
     $stmt->bind_param("sss", $name, $username, $password);
 
