@@ -6,24 +6,33 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+$data = json_decode(file_get_contents('php://input'), true);
 
-    $sql = "SELECT * FROM admin WHERE username='$username'";
-    $result = $conn->query($sql);
+if ($data && isset($data['username'], $data['password'])) {
+    $username = $data['username'];
+    $password = $data['password'];
 
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        if (password_verify($password, $row['password'])) {
+    $stmt = $conn->prepare("SELECT password FROM admin WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows === 1) {
+        $stmt->bind_result($storedPassword);
+        $stmt->fetch();
+
+        if ($password === $storedPassword) {
             echo json_encode(['status' => 'success', 'message' => 'Login successful']);
         } else {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
+            echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
         }
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'User not found']);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
     }
 
+    $stmt->close();
     $conn->close();
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
 }
 ?>
