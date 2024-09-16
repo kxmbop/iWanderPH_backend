@@ -6,10 +6,8 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
-// Get the BookingID from the request
 $bookingID = $_GET['bookingId'];
 
-// Query for booking details using the provided BookingID
 $bookingQuery = "
     SELECT 
         b.BookingID AS BookingID,
@@ -46,7 +44,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 $bookingDetails = $result->fetch_assoc();
 
-// Fetching Room or Transportation details based on the ListingType
+// room or transportation based on listingType
 if ($bookingDetails['ListingType'] == 'room') {
     $listingQuery = "
         SELECT r.RoomName AS RoomName, r.MerchantID AS MerchantID
@@ -91,7 +89,6 @@ $viewStmt->execute();
 $viewResult = $viewStmt->get_result();
 $viewDetails = $viewResult->fetch_assoc();
 
-// Prepare the JSON response
 $response = [
     "bookingDetails" => $bookingDetails,
     "listingDetails" => $listingDetails,
@@ -99,6 +96,5 @@ $response = [
     "viewDetails" => $viewDetails
 ];
 
-// Return the response as JSON
 echo json_encode($response);
 ?>
