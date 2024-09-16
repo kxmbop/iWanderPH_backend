@@ -4,9 +4,8 @@ header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-include '../../db.php'; // Make sure this path is correct
+include '../../db.php'; 
 
-// SQL query to get booking ID and total amount per traveler
 $sql = "
     SELECT 
         t.TravelerID as travelerId,

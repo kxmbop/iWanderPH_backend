@@ -10,7 +10,7 @@ $sql = "
     SELECT 
         b.BookingID as bookingId,
         b.BookingDate as bookingDate,
-        CONCAT(t.FirstName, ' ', t.LastName) as travelerName,
+        t.username as travelerName,
         m.BusinessName as merchantName,
         b.Subtotal as subtotal,       
         b.VAT as vat,                
@@ -22,6 +22,7 @@ $sql = "
     FROM bookings b
     JOIN traveler t ON b.TravelerID = t.TravelerID
     JOIN merchant m ON b.MerchantID = m.MerchantID
+    WHERE b.BookingStatus = 'pending' && b.payoutStatus = 'pending';
 ";
 
 $result = $conn->query($sql);
