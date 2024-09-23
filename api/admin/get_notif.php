@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    $sql = "SELECT header, description, visibleTo, created_at FROM notifications ORDER BY created_at DESC";
+    $sql = "SELECT header, description, visibleTo, createdAt FROM notifications ORDER BY createdAt DESC";
     $result = $conn->query($sql);
 
     $notifications = [];
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     error_log("Header: $header, Description: $description, Visible To: $visibleto, Dedicated To: $dedicatedto");
 
-    $sql = "INSERT INTO notifications (header, description, visibleTo, dedicatedTo, created_at) VALUES (?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO notifications (header, description, visibleTo, dedicatedTo, createdAt) VALUES (?, ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ssss", $header, $description, $visibleto, $dedicatedto);
 

@@ -13,7 +13,7 @@ $bookingQuery = "
         b.BookingID AS BookingID,
         b.PaymentStatus AS PaymentStatus,
         b.TotalAmount AS TotalAmount,
-        b.payoutStatus AS PayoutStatus,
+        b.PayoutStatus AS PayoutStatus,
         b.BookingStatus AS BookingStatus,
         b.CheckIn AS CheckIn,
         b.CheckOut AS CheckOut,

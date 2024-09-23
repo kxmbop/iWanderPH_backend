@@ -22,7 +22,7 @@ $sql = "
     FROM bookings b
     JOIN traveler t ON b.TravelerID = t.TravelerID
     JOIN merchant m ON b.MerchantID = m.MerchantID
-    WHERE b.bookingStatus = 'pending' && b.payoutStatus = 'pending' && b.paymentStatus != 'failed'
+    WHERE b.bookingStatus = 'pending' && b.PayoutStatus = 'pending' && b.PaymentStatus != 'failed'
     ORDER BY b.BookingDate ASC;
 ";
 
