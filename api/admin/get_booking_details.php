@@ -33,7 +33,8 @@ $bookingQuery = "
         m.BusinessName AS MerchantBusinessName,
         m.Email AS MerchantEmail,
         m.Contact AS MerchantContact,
-        m.BusinessType AS MerchantBusinessType
+        m.BusinessType AS MerchantBusinessType,
+        b.refundAmount AS refundAmount
     FROM bookings b
     JOIN traveler t ON b.TravelerID = t.TravelerID
     JOIN merchant m ON b.MerchantID = m.MerchantID
