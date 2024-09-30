@@ -1,4 +1,5 @@
 <?php
+session_start(); // Start a new session
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -37,7 +38,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $key = "123456"; 
                     $payload = [
                         'iat' => time(),
-                        'exp' => time() + (60 * 60), 
                         'TravelerID' => $user["TravelerID"],
                         'Username' => $user["Username"]
                     ];
@@ -45,12 +45,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $algorithm = 'HS256';
                     $jwt = JWT::encode($payload, $key, $algorithm);
             
+                    $_SESSION['token'] = $jwt; // Store JWT in session
+
                     $success = true;
                     $message = "Login successful.";
                     echo json_encode(["success" => $success, "message" => $message, "token" => $jwt]);
                     exit();
                 }
-            }else {
+            } else {
                 $message = "Invalid username or password.";
             }
         } else {

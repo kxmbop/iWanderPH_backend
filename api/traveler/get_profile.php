@@ -1,30 +1,28 @@
 <?php
+session_start(); 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
 require '../../vendor/autoload.php';
-use \Firebase\JWT\JWT;
-use \Firebase\JWT\ExpiredException;
+use Firebase\JWT\JWT;
+use Firebase\JWT\ExpiredException;
 
 include '../../db.php';
 
 $response = [];
 $key = "123456"; 
 
+$token = $_SESSION['token'] ?? '';
+
 $headers = getallheaders();
-$token = $headers['Authorization'] ?? '';
+$authorizationHeader = $headers['Authorization'] ?? '';
+$token = str_replace('Bearer ', '', $authorizationHeader);
 
-if (preg_match('/Bearer\s(\S+)/', $token, $matches)) {
-    $token = $matches[1]; 
-} else {
-    $token = null;
-}
-
-if ($token) {
+if (!empty($token)) {
     try {
-        $decoded = JWT::decode($token, new \Firebase\JWT\Key($key, 'HS256'));
+        $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
 
         $profile_sql = "SELECT FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
@@ -36,7 +34,10 @@ if ($token) {
         if ($profile_result->num_rows == 1) {
             $profile_data = $profile_result->fetch_assoc();
             $response["profile"] = $profile_data;
-            
+            $profile_data['ProfilePic'] = base64_encode($profile_data['ProfilePic']);
+            $response["profile"] = $profile_data;
+        } else {
+            $response["profile"] = null;
         }
 
         $journey_sql = "SELECT COUNT(*) AS journey_count FROM bookings WHERE TravelerID = ?";
@@ -47,14 +48,15 @@ if ($token) {
         $journey_data = $journey_result->fetch_assoc();
         $response["journeys"] = $journey_data["journey_count"];
 
-        $response["message"] = "Token Good.";
+
+        $response["message"] = "Token is valid.";
         $response["success"] = true;
     } catch (ExpiredException $e) {
         $response["success"] = false;
-        $response["message"] = "Token expired.";
+        $response["message"] = "Token expired: " . $e->getMessage();
     } catch (Exception $e) {
         $response["success"] = false;
-        $response["message"] = "Invalid token.";
+        $response["message"] = "Invalid token: " . $e->getMessage(); 
     }
 } else {
     $response["success"] = false;
@@ -62,5 +64,7 @@ if ($token) {
 }
 
 $conn->close();
+
+header('Content-Type: application/json');
 echo json_encode($response);
 ?>
