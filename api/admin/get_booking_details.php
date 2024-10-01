@@ -13,8 +13,10 @@ $bookingQuery = "
         b.BookingID AS BookingID,
         b.PaymentStatus AS PaymentStatus,
         b.TotalAmount AS TotalAmount,
+        b.proofOfPayment AS ProofOfPayment,
         b.PayoutStatus AS PayoutStatus,
         b.BookingStatus AS BookingStatus,
+        b.paymentGCashTransactionID as paymentGCashTransactionID,
         b.CheckIn AS CheckIn,
         b.CheckOut AS CheckOut,
         b.Subtotal AS Subtotal,
@@ -25,6 +27,7 @@ $bookingQuery = "
         b.ListingType AS ListingType,
         b.MerchantID AS MerchantID,
         b.TravelerID AS TravelerID,
+        t.Mobile AS travelerMobile,
         t.FirstName AS TravelerFirstName,
         t.LastName AS TravelerLastName,
         t.Username AS TravelerUsername,
@@ -44,6 +47,9 @@ $stmt->bind_param("i", $bookingID);
 $stmt->execute();
 $result = $stmt->get_result();
 $bookingDetails = $result->fetch_assoc();
+
+$bookingDetails['ProofOfPayment'] = base64_encode($bookingDetails['ProofOfPayment']);
+
 
 // room or transportation based on listingType
 if ($bookingDetails['ListingType'] == 'room') {
