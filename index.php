@@ -13,7 +13,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch images
-$sql = "SELECT * FROM reviewImages";
+$sql = "SELECT * FROM review_images";
 $result = $conn->query($sql);
 ?>
 
