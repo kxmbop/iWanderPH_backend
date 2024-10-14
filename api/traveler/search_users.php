@@ -1,5 +1,5 @@
 <?php
-session_start(); 
+session_start();
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -24,13 +24,13 @@ if (!isset($token)) {
 
 $query = "
     SELECT 
-        merchant.merchantId AS id, 
+        merchant.merchantuuid AS uuid, 
         merchant.BusinessName AS username, 
         merchant.BusinessType 
     FROM merchant 
     UNION 
     SELECT 
-        traveler.travelerId AS id, 
+        traveler.traveleruuId AS uuid, 
         traveler.username, 
         CONCAT(traveler.firstname, ' ', traveler.lastname) AS fullname 
     FROM traveler
@@ -48,7 +48,7 @@ $users = [];
 
 while ($row = mysqli_fetch_assoc($result)) {
     $users[] = [
-      'id' => $row['id'],
+      'uuid' => $row['uuid'],
       'username' => $row['username'],
       'fullname' => $row['fullname'] ?? '', 
       'BusinessType' => $row['BusinessType'] ?? ''
