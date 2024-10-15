@@ -32,6 +32,7 @@ if (!empty($token)) {
             exit;
         }
 
+        // Retrieve traveler UUID
         $getTravelerUUID = "SELECT travelerUUID FROM traveler WHERE travelerId = ?";
         $stmt = $conn->prepare($getTravelerUUID);
         $stmt->bind_param("s", $travelerID);
@@ -46,6 +47,7 @@ if (!empty($token)) {
             exit;
         }
 
+        // Fetch chat sessions involving the traveler
         $query = "SELECT cs.* 
                   FROM chat_session cs 
                   WHERE cs.userOne = ? OR cs.userTwo = ?";
@@ -54,36 +56,33 @@ if (!empty($token)) {
         $stmt->execute();
         $result = $stmt->get_result();
 
-        $userDetailsQuery = "SELECT 
-                                t.travelerId, t.travelerUUID, CONCAT(t.firstname, ' ', t.lastname) AS name, t.username,
-                                m.merchantId, m.merchantUUID, m.businessName AS name, m.BusinessType
-                            FROM 
-                                traveler t 
-                            LEFT JOIN 
-                                merchant m ON t.travelerId = m.merchantId";
+        // Prepare to fetch details for travelers, merchants, and admins
+        $userDetailsQuery = "
+            SELECT t.travelerId AS userid, t.travelerUUID AS userUUID, CONCAT(t.firstname, ' ', t.lastname) AS name, t.username, NULL AS BusinessType
+            FROM traveler t
+            UNION ALL
+            SELECT m.merchantId AS userid, m.merchantUUID AS userUUID, m.businessName AS username, m.businessName AS name, m.BusinessType
+            FROM merchant m
+            UNION ALL
+            SELECT a.adminID AS userid, a.adminUUID AS userUUID, NULL AS name, 'Customer Support' AS username, NULL AS BusinessType
+            FROM admin a";
+        
         $stmt = $conn->prepare($userDetailsQuery);
         $stmt->execute();
         $userDetailsResult = $stmt->get_result();
 
         $userDetails = [];
         while ($row = $userDetailsResult->fetch_assoc()) {
-            if ($row['travelerId']) {
-                $userDetails[$row['travelerId']] = [
-                    'userid' => $row['travelerId'],
-                    'userUUId' => $row['travelerUUID'],
-                    'name' => $row['name'],
-                    'username' => $row['username']
-                ];
-            } elseif ($row['merchantId']) {
-                $userDetails[$row['merchantId']] = [
-                    'userid' => $row['merchantId'],
-                    'userUUId' => $row['merchantUUID'],
-                    'name' => $row['name'],
-                    'BusinessType' => $row['BusinessType']
-                ];
-            }
+            $userDetails[$row['userid']] = [
+                'userid' => $row['userid'],
+                'userUUID' => $row['userUUID'],
+                'name' => $row['name'],
+                'username' => $row['username'] ?? null,
+                'BusinessType' => $row['BusinessType'] ?? null
+            ];
         }
 
+        // Construct chat session details with user information
         $conversations = [];
         while ($row = $result->fetch_assoc()) {
             $chatSessionId = $row['chatSessionId'];
@@ -91,17 +90,20 @@ if (!empty($token)) {
             $userOneEncrypted = $row['userOne'];
             $userTwoEncrypted = $row['userTwo'];
 
+            // Decrypt UUIDs
             $userOneDecrypted = decrypt($userOneEncrypted, $key);
             $userTwoDecrypted = decrypt($userTwoEncrypted, $key);
 
+            // Extract User IDs from decrypted UUIDs
             $userOneParts = explode(' - ', $userOneDecrypted);
             $userTwoParts = explode(' - ', $userTwoDecrypted);
 
             $userOneId = $userOneParts[0];
             $userTwoId = $userTwoParts[0];
 
-            $userOneDetails = $userDetails[$userOneId];
-            $userTwoDetails = $userDetails[$userTwoId];
+            // Fetch details for both users
+            $userOneDetails = $userDetails[$userOneId] ?? null;
+            $userTwoDetails = $userDetails[$userTwoId] ?? null;
 
             $conversations[] = [
                 'chatSessionId' => $chatSessionId,
@@ -121,7 +123,7 @@ if (!empty($token)) {
         echo json_encode($response);
     } catch (Exception $e) {
         $response["success"] = false;
-        $response["message"] = "Invalid token : " . $e->getMessage();
+        $response["message"] = "Invalid token: " . $e->getMessage();
         echo json_encode($response);
     }
 } else {

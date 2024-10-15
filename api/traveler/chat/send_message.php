@@ -19,7 +19,8 @@ if (isset($data->chatSessionId) && isset($data->message)) {
         exit;
     }
 
-    $getSenderUUID = "SELECT travelerUUID FROM traveler  WHERE travelerId = '$senderId'";
+    // Fetch the sender's UUID from the database
+    $getSenderUUID = "SELECT travelerUUID FROM traveler WHERE travelerId = '$senderId'";
     $result = mysqli_query($conn, $getSenderUUID);
 
     if ($result && mysqli_num_rows($result) > 0) {
@@ -29,14 +30,19 @@ if (isset($data->chatSessionId) && isset($data->message)) {
         echo json_encode(['success' => false, 'error' => 'Sender UUID not found']);
         exit;
     }
-    
-    $timestamp = date("Y-m-d H:i:s");
 
+    // Insert the new message into the chat_messages table
     $query = "INSERT INTO chat_messages (chatSessionId, senderId, message, timestamp) 
-              VALUES ('$chatSessionId', '$senderUUID', '$message', '$timestamp')";
+              VALUES ('$chatSessionId', '$senderUUID', '$message', NOW())";
 
     if (mysqli_query($conn, $query)) {
-        echo json_encode(['success' => true]);
+        // Update the updatedAt column in the chat_session table
+        $updateSql = "UPDATE chat_session SET updatedAt = NOW() WHERE chatSessionId = '$chatSessionId'";
+        if (mysqli_query($conn, $updateSql)) {
+            echo json_encode(['success' => true, 'message' => 'Message sent and session updated']);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Message sent, but failed to update chat session']);
+        }
     } else {
         echo json_encode(['success' => false, 'error' => mysqli_error($conn)]);
     }
