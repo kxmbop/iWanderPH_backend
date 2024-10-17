@@ -18,6 +18,7 @@ if ($merchantId === 0) {
     echo json_encode(array('error' => 'Invalid merchant ID'));
     exit();
 }
+//hi
 
 // Fetch merchant details
 $sql_merchant = "SELECT BusinessName, Email, Contact, Address FROM merchant WHERE MerchantID = $merchantId";

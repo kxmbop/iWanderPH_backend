@@ -36,6 +36,7 @@ if ($result_gallery && $result_gallery->num_rows > 0) {
 $response['transportation']['gallery'] = $gallery;
 
 // Output the JSON response
+//hi
 echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 $conn->close();

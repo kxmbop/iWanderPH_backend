@@ -68,4 +68,5 @@ $conn->close();
 // Log the response
 error_log('API response: ' . json_encode(['merchants' => $nearby_merchants]));
 exit;
+//hi
 ?>
