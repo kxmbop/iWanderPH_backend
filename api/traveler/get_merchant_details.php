@@ -21,12 +21,18 @@ if ($merchantId === 0) {
 //hi
 
 // Fetch merchant details
-$sql_merchant = "SELECT BusinessName, Email, Contact, Address FROM merchant WHERE MerchantID = $merchantId";
+$sql_merchant = "SELECT BusinessName, Email, Contact, Address, merchant_img FROM merchant WHERE MerchantID = $merchantId";
 $result_merchant = $conn->query($sql_merchant);
 
-// Check if merchant data exists
 if ($result_merchant && $result_merchant->num_rows > 0) {
-    $response['merchant'] = $result_merchant->fetch_assoc();
+    $merchantData = $result_merchant->fetch_assoc();
+    
+    // Properly encode the image if it exists
+    if ($merchantData['merchant_img']) {
+        $merchantData['merchant_img'] = base64_encode($merchantData['merchant_img']);
+    }
+
+    $response['merchant'] = $merchantData;
 } else {
     $response['merchant'] = null; // Handle no merchant data
 }

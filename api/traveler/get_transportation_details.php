@@ -1,43 +1,36 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
-
-include '../../db.php'; // Ensure the path is correct
+include '../../db.php';
 
 $transportId = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
 $response = array();
 
-if ($transportId === 0) {
-    echo json_encode(array('error' => 'Invalid Transportation ID'));
-    exit();
-}
+if ($transportId > 0) {
+    $sql = "SELECT VehicleName, Model, Brand, Capacity, RentalPrice, DriverName, DriverContactNo 
+            FROM transportations WHERE TransportationID = $transportId";
+    $result = $conn->query($sql);
 
-// Fetch transportation details
-$sql_transport = "SELECT VehicleName, Model, Brand, Capacity, RentalPrice FROM transportations WHERE TransportationID = $transportId";
-$result_transport = $conn->query($sql_transport);
+    if ($result->num_rows > 0) {
+        $transportation = $result->fetch_assoc();
 
-if ($result_transport && $result_transport->num_rows > 0) {
-    $response['transportation'] = $result_transport->fetch_assoc();
-} else {
-    $response['transportation'] = null;
-}
+        // Fetch gallery images
+        $gallery_sql = "SELECT ImageFile FROM transportation_gallery WHERE TransportationID = $transportId";
+        $gallery_result = $conn->query($gallery_sql);
+        $gallery = array();
+        while ($image = $gallery_result->fetch_assoc()) {
+            $gallery[] = base64_encode($image['ImageFile']);
+        }
+        $transportation['gallery'] = $gallery;
 
-// Fetch transportation gallery
-$sql_gallery = "SELECT ImageFile FROM transportation_gallery WHERE TransportationID = $transportId";
-$result_gallery = $conn->query($sql_gallery);
-$gallery = array();
-if ($result_gallery && $result_gallery->num_rows > 0) {
-    while ($image = $result_gallery->fetch_assoc()) {
-        $gallery[] = base64_encode($image['ImageFile']);
+        $response['transportation'] = $transportation;
+    } else {
+        $response['error'] = 'Transportation not found';
     }
+} else {
+    $response['error'] = 'Invalid Transportation ID';
 }
-$response['transportation']['gallery'] = $gallery;
 
-// Output the JSON response
-//hi
-echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-$conn->close();
+echo json_encode($response);
 ?>

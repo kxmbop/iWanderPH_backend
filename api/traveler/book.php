@@ -68,6 +68,7 @@ if (!empty($token)) {
         $bookingID = $stmt->insert_id;
         $stmt->close();
 
+
         // Additional handling for room or transportation bookings
         if ($bookingType === 'room') {
             $checkIn = $bookingData['checkIn'];

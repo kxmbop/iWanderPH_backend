@@ -35,6 +35,6 @@ if ($result_images->num_rows > 0) {
 $response['images'] = $images;
 
 echo json_encode($response);
-//hi
+//hello
 $conn->close();
 ?>

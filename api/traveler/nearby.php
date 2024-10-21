@@ -23,7 +23,8 @@ $sql = "SELECT
             m.MerchantID, 
             m.BusinessName, 
             m.Address, 
-            MIN(r.RoomRate) AS LowestRoomRate
+            MIN(r.RoomRate) AS LowestRoomRate,
+            m.merchant_img
         FROM 
             nearby n
         JOIN 
@@ -53,6 +54,10 @@ $nearby_merchants = [];
 
 // Fetch the results
 while ($row = $result->fetch_assoc()) {
+    if ($row['merchant_img']) {
+        // Encode the binary image data to base64
+        $row['merchant_img'] = base64_encode($row['merchant_img']);
+    }
     $nearby_merchants[] = $row;
 }
 
@@ -64,9 +69,4 @@ if (count($nearby_merchants) === 0) {
 
 $stmt->close();
 $conn->close();
-
-// Log the response
-error_log('API response: ' . json_encode(['merchants' => $nearby_merchants]));
-exit;
-//hi
 ?>
