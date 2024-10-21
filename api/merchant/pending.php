@@ -7,32 +7,43 @@ header("Content-Type: application/json");
 
 require '../../vendor/autoload.php';
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Firebase\JWT\ExpiredException;
 
 include '../../db.php';
 
-$response = [];
 $key = "123456"; 
+$response = [];
 
-$token = $_SESSION['token'] ?? '';
+// Read input from the POST request
+$data = json_decode(file_get_contents("php://input"), true);
+$token = $data['token'] ?? null;
+$status = $data['status'] ?? null;
 
-$headers = getallheaders();
-$authorizationHeader = $headers['Authorization'] ?? '';
-$token = str_replace('Bearer ', '', $authorizationHeader);
-
-$decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
-$travelerID = $decoded->TravelerID;
-$role = $decoded->role;
-
-$merchantSql = "SELECT MerchantID FROM merchant WHERE TravelerID = '$travelerID'";
-$merchantResult = $conn->query($merchantSql);
-
-if ($merchantResult === false) {
-    echo json_encode(['error' => 'Error in merchant query: ' . $conn->error]);
+// Check if token and status are provided
+if (!$token || !$status) {
+    echo json_encode(['error' => 'Token and status are required']);
     exit;
 }
 
+// Decode the JWT token
+try {
+    $decoded = JWT::decode($token, new Key($key, 'HS256'));
+    $travelerID = $decoded->TravelerID;
+    $role = $decoded->role;
+} catch (Exception $e) {
+    echo json_encode(['error' => 'Invalid token: ' . $e->getMessage()]);
+    exit;
+}
+
+// Fetch the merchant ID associated with the traveler
+$merchantSql = "SELECT MerchantID FROM merchant WHERE TravelerID = ?";
+$merchantStmt = $conn->prepare($merchantSql);
+$merchantStmt->bind_param("i", $travelerID);
+$merchantStmt->execute();
+$merchantResult = $merchantStmt->get_result();
 $merchantRow = $merchantResult->fetch_assoc();
+
 if (!$merchantRow) {
     echo json_encode(['error' => 'No merchant found for the given traveler']);
     exit;
@@ -40,34 +51,32 @@ if (!$merchantRow) {
 
 $merchantID = $merchantRow['MerchantID'];
 
-$sql = "SELECT b.BookingID, b.BookingDate, b.PaymentStatus, b.ListingID, b.ListingType, b.BookingStatus, b.Duration, b.CheckIn, b.CheckOut, b.Subtotal, b.VAT, b.PayoutAmount, b.TotalAmount, b.RefundAmount, t.Username
+
+// Fetch all bookings for the merchant with the specified status
+$sql = "
+SELECT 
+    b.*, 
+    t.Username, 
+    m.BusinessName
 FROM bookings b
-LEFT JOIN rooms r ON b.ListingID = r.RoomID AND b.ListingType = 'room'
-LEFT JOIN transportations tr ON b.ListingID = tr.TransportationID AND b.ListingType = 'car'
-JOIN merchant m ON r.MerchantID = m.MerchantID OR tr.MerchantID = m.MerchantID
+JOIN merchant m ON b.MerchantID = m.MerchantID
 JOIN traveler t ON b.TravelerID = t.TravelerID
-WHERE m.MerchantID = '$merchantID' AND b.BookingStatus = 'pending'";
+WHERE m.MerchantID = ? AND b.BookingStatus = ?
+";
 
-$result = $conn->query($sql);
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("is", $merchantID, $status);
+$stmt->execute();
+$result = $stmt->get_result();
+$bookings = $result->fetch_all(MYSQLI_ASSOC);
 
-if ($result === false) {
-    echo json_encode(['error' => 'Error in bookings query: ' . $conn->error]);
-    exit;
-}
-
-$bookings = array();
-
-while ($row = $result->fetch_assoc()) {
-    $bookings[] = $row;
-}
-
+// Output the result in JSON format
 if (empty($bookings)) {
-    echo json_encode(['message' => 'No pending bookings found']);
+    echo json_encode(['message' => 'No bookings found with the given status']);
 } else {
     echo json_encode($bookings);
 }
 
-header('Content-Type: application/json');
-
+// Close the database connection
 $conn->close();
 ?>
