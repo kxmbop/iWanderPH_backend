@@ -27,12 +27,27 @@ try {
     $travelerResult = mysqli_query($conn, $travelerQuery);
     $traveler = mysqli_fetch_assoc($travelerResult);
     
-    // Fetch reviews
-    $reviewQuery = "SELECT r.reviewID, r.reviewComment, r.reviewRating, 
+    // Fetch BookingID for the traveler
+    $bookingQuery = "SELECT BookingID FROM bookings WHERE TravelerID = '$travelerID'";
+    $bookingResult = mysqli_query($conn, $bookingQuery);
+
+    if ($bookingResult === false || mysqli_num_rows($bookingResult) === 0) {
+        $response['error'] = 'No bookings found for the traveler';
+        echo json_encode($response);
+        exit;
+    }
+
+    $bookingRow = mysqli_fetch_assoc($bookingResult);
+    $bookingID = $bookingRow['BookingID'];
+
+    // Fetch reviews based on the retrieved BookingID
+    $reviewQuery = "
+        SELECT r.reviewID, r.reviewComment, r.reviewRating, 
                (SELECT COUNT(*) FROM review_likes WHERE reviewID = r.reviewID) AS likes,
                (SELECT COUNT(*) FROM review_comments WHERE reviewID = r.reviewID) AS comments
-               FROM reviews r
-               WHERE r.TravelerID = '$travelerID'";
+        FROM reviews r
+        WHERE r.BookingID = '$bookingID'
+    ";
 
     $result = mysqli_query($conn, $reviewQuery);
 
@@ -53,6 +68,7 @@ try {
             'images' => array()
         );
 
+        // Fetch images for each review
         $imageQuery = "SELECT image FROM review_images WHERE reviewID = " . $row['reviewID'];
         $imageResult = mysqli_query($conn, $imageQuery);
 
