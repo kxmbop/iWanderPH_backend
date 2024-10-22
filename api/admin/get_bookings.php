@@ -10,7 +10,7 @@ $sql = "
     SELECT 
         b.BookingID as bookingId,
         b.BookingDate as bookingDate,
-        t.username as travelerName,
+        t.Username as travelerName,
         m.BusinessName as merchantName,
         b.Subtotal as subtotal,       
         b.VAT as vat,                

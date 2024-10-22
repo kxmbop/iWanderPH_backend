@@ -9,7 +9,7 @@ include '../../db.php';
 $sql = "
     SELECT 
         t.TravelerID as userId,
-        t.Username as username,
+        t.Username as Username,
         CONCAT(t.FirstName, ' ', t.LastName) as fullName,
         t.Email as email,
         t.isMerchant as isMerchant
