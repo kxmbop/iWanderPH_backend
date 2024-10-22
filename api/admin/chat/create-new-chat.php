@@ -20,8 +20,7 @@ $adminToken = $data['adminId'] ?? '';
 $_userUUID = decrypt($userUUID, $key);
 $userUUIDParts = explode(' - ', $_userUUID);
 $userID = $userUUIDParts[0];
-$userRole = $userUUIDParts[2];
-
+$userRole = $userUUIDParts[2]; 
 
 if (!empty($adminToken)) {
     try {
@@ -38,16 +37,24 @@ if (!empty($adminToken)) {
             $row = $result->fetch_assoc();
             $adminUUID = $row['adminUUID'];
         } else {
-            echo "Admin UUID not found.";
+            echo json_encode(["error" => "Admin UUID not found."]);
             exit;
         }
 
         if ($userUUID && $userRole) {
-            $sql = "INSERT INTO chat_session (chatType, userOne, userTwo, isActivated, createdAt, updatedAt)
-                    VALUES ('support&traveler', ?, ?, 1, NOW(), NOW())";
+            if ($userRole === 'merchant') {
+                $chatType = 'support&merchant';
+            } else if ($userRole === 'traveler') {
+                $chatType = 'support&traveler';
+            } else {
+                echo json_encode(["error" => "Invalid user role"]);
+                exit;
+            }
 
+            $sql = "INSERT INTO chat_session (chatType, userOne, userTwo, isActivated, createdAt, updatedAt)
+                    VALUES (?, ?, ?, 1, NOW(), NOW())";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param('ss', $adminUUID, $userUUID);
+            $stmt->bind_param('sss', $chatType, $adminUUID, $userUUID);
 
             if ($stmt->execute()) {
                 $chatSessionId = $stmt->insert_id;

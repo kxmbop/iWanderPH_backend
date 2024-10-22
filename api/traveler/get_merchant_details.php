@@ -4,13 +4,12 @@ header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-ini_set('display_errors', 1); // Show errors during development
+ini_set('display_errors', 1); 
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 include '../../db.php';
 
-// Get merchant ID from the GET request
 $merchantId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $response = array();
 
@@ -18,26 +17,22 @@ if ($merchantId === 0) {
     echo json_encode(array('error' => 'Invalid merchant ID'));
     exit();
 }
-//hi
 
-// Fetch merchant details
-$sql_merchant = "SELECT BusinessName, Email, Contact, Address, merchant_img FROM merchant WHERE MerchantID = $merchantId";
+$sql_merchant = "SELECT BusinessName, Email, Contact, Address, profilePicture FROM merchant WHERE MerchantID = $merchantId";
 $result_merchant = $conn->query($sql_merchant);
 
 if ($result_merchant && $result_merchant->num_rows > 0) {
     $merchantData = $result_merchant->fetch_assoc();
     
-    // Properly encode the image if it exists
-    if ($merchantData['merchant_img']) {
-        $merchantData['merchant_img'] = base64_encode($merchantData['merchant_img']);
+    if ($merchantData['profilePicture']) {
+        $merchantData['profilePicture'] = base64_encode($merchantData['profilePicture']);
     }
 
     $response['merchant'] = $merchantData;
 } else {
-    $response['merchant'] = null; // Handle no merchant data
+    $response['merchant'] = null; 
 }
 
-// Fetch rooms and room details
 $sql_rooms = "SELECT RoomID, RoomName, RoomRate, GuestPerRoom FROM rooms WHERE MerchantID = $merchantId";
 $result_rooms = $conn->query($sql_rooms);
 
@@ -46,7 +41,6 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
     while ($room = $result_rooms->fetch_assoc()) {
         $roomId = $room['RoomID'];
 
-        // Fetch room gallery
         $sql_gallery = "SELECT ImageFile FROM room_gallery WHERE RoomID = $roomId";
         $result_gallery = $conn->query($sql_gallery);
         $gallery = array();
@@ -57,7 +51,6 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
         }
         $room['gallery'] = $gallery;
 
-        // Fetch room inclusions
         $sql_inclusions = "SELECT InclusionName FROM inclusions 
                            INNER JOIN room_inclusions ON inclusions.InclusionID = room_inclusions.InclusionID 
                            WHERE room_inclusions.RoomID = $roomId";
@@ -70,7 +63,6 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
         }
         $room['inclusions'] = $inclusions;
 
-        // Fetch room views
         $sql_views = "SELECT ViewName FROM views 
                       INNER JOIN room_view ON views.ViewID = room_view.ViewID 
                       WHERE room_view.RoomID = $roomId";
@@ -88,7 +80,6 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
 }
 $response['rooms'] = $rooms;
 
-// Fetch transportations
 $sql_transportations = "SELECT TransportationID, VehicleName, Model, Brand, Capacity, RentalPrice FROM transportations WHERE MerchantID = $merchantId";
 $result_transportations = $conn->query($sql_transportations);
 
@@ -97,7 +88,6 @@ if ($result_transportations && $result_transportations->num_rows > 0) {
     while ($transport = $result_transportations->fetch_assoc()) {
         $transportId = $transport['TransportationID'];
 
-        // Fetch transportation gallery
         $sql_gallery_transport = "SELECT ImageFile FROM transportation_gallery WHERE TransportationID = $transportId";
         $result_gallery_transport = $conn->query($sql_gallery_transport);
         $transport_gallery = array();
@@ -112,7 +102,6 @@ if ($result_transportations && $result_transportations->num_rows > 0) {
 }
 $response['transportations'] = $transportations;
 
-// Output the JSON-encoded response
 echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 $conn->close();

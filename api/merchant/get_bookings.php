@@ -15,18 +15,15 @@ include '../../db.php';
 $key = "123456"; 
 $response = [];
 
-// Read input from the POST request
 $data = json_decode(file_get_contents("php://input"), true);
 $token = $data['token'] ?? null;
 $status = $data['status'] ?? null;
 
-// Check if token and status are provided
 if (!$token || !$status) {
     echo json_encode(['error' => 'Token and status are required']);
     exit;
 }
 
-// Decode the JWT token
 try {
     $decoded = JWT::decode($token, new Key($key, 'HS256'));
     $travelerID = $decoded->TravelerID;
@@ -36,7 +33,6 @@ try {
     exit;
 }
 
-// Fetch the merchant ID associated with the traveler
 $merchantSql = "SELECT MerchantID FROM merchant WHERE TravelerID = ?";
 $merchantStmt = $conn->prepare($merchantSql);
 $merchantStmt->bind_param("i", $travelerID);
@@ -51,17 +47,42 @@ if (!$merchantRow) {
 
 $merchantID = $merchantRow['MerchantID'];
 
-
-// Fetch all bookings for the merchant with the specified status
 $sql = "
 SELECT 
-    b.*, 
-    t.Username, 
-    m.BusinessName
-FROM bookings b
-JOIN merchant m ON b.MerchantID = m.MerchantID
+    b.bookingID,
+    b.bookingDate,
+    b.bookingStatus,
+    b.proofOfPayment,
+    b.paymentTransactionID,
+    b.paymentStatus,
+    b.subtotal,
+    b.VAT,
+    b.payoutAmount,
+    b.totalAmount,
+    b.payoutTransactionID,
+    b.payoutStatus,
+    b.refundReason,
+    b.refundStatus,
+    b.refundTransactionID,
+    rb.RoomBookingID,
+    rb.CheckInDate,
+    rb.CheckOutDate,
+    rb.SpecialRequest,
+    tb.TransportationBookingID,
+    tb.PickupDateTime,
+    tb.DropoffDateTime,
+    tb.PickupLocation,
+    tb.DropoffLocation,
+    t.Username AS TravelerUsername,
+    t.FirstName AS TravelerFirstName,
+    t.LastName AS TravelerLastName,
+    m.BusinessName AS MerchantBusinessName
+FROM booking b
+LEFT JOIN room_booking rb ON b.roomBookingID = rb.RoomBookingID
+LEFT JOIN transportation_booking tb ON b.transportationBookingID = tb.TransportationBookingID
 JOIN traveler t ON b.TravelerID = t.TravelerID
-WHERE m.MerchantID = ? AND b.BookingStatus = ?
+JOIN merchant m ON b.MerchantID = m.MerchantID
+WHERE b.MerchantID = ? AND b.bookingStatus = ?
 ";
 
 $stmt = $conn->prepare($sql);
@@ -70,13 +91,11 @@ $stmt->execute();
 $result = $stmt->get_result();
 $bookings = $result->fetch_all(MYSQLI_ASSOC);
 
-// Output the result in JSON format
 if (empty($bookings)) {
     echo json_encode(['message' => 'No bookings found with the given status']);
 } else {
     echo json_encode($bookings);
 }
 
-// Close the database connection
 $conn->close();
 ?>

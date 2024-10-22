@@ -31,6 +31,13 @@ try {
 
     if ($result->num_rows > 0) {
         $merchantProfile = $result->fetch_assoc();
+        
+        if (isset($merchantProfile['profilePicture']) && !empty($merchantProfile['profilePicture'])) {
+            $merchantProfile['profilePicture'] = base64_encode($merchantProfile['profilePicture']);
+        } else {
+            $merchantProfile['profilePicture'] = null; 
+        }
+        
         echo json_encode(['profile' => $merchantProfile]);
     } else {
         echo json_encode(['error' => 'Merchant not found']);

@@ -83,12 +83,12 @@ if ($result->num_rows > 0) {
                 $userRow = $userResult->fetch_assoc();
                 $receiverName = $userRow['name'];
             } else {
-                $receiverName = "Unknown User"; // Handle case where user is not found
+                $receiverName = "Unknown User"; 
             }
 
             $userStmt->close();
         } else {
-            $receiverName = "Admin"; // If userTwo is the admin
+            $receiverName = "Admin"; 
         }
 
         $conversations[] = [

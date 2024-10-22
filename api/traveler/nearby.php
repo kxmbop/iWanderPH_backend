@@ -24,7 +24,7 @@ $sql = "SELECT
             m.BusinessName, 
             m.Address, 
             MIN(r.RoomRate) AS LowestRoomRate,
-            m.merchant_img
+            m.profilePicture
         FROM 
             nearby n
         JOIN 
@@ -54,9 +54,9 @@ $nearby_merchants = [];
 
 // Fetch the results
 while ($row = $result->fetch_assoc()) {
-    if ($row['merchant_img']) {
+    if ($row['profilePicture']) {
         // Encode the binary image data to base64
-        $row['merchant_img'] = base64_encode($row['merchant_img']);
+        $row['profilePicture'] = base64_encode($row['profilePicture']);
     }
     $nearby_merchants[] = $row;
 }

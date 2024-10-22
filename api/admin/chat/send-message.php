@@ -18,11 +18,9 @@ $adminToken = $data['adminToken'] ?? '';
 $key = "123456"; 
 
 try {
-    // Decode the JWT token to get the adminID
     $decoded = JWT::decode($adminToken, new Key($key, 'HS256'));
     $adminID = $decoded->adminID;
 
-    // Query to retrieve adminUUID using adminID
     $query = "SELECT adminUUID FROM admin WHERE adminID = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param('s', $adminID);
@@ -37,7 +35,6 @@ try {
         exit;
     }
 
-    // Insert the new message into the chat_messages table
     $sql = "INSERT INTO chat_messages (chatSessionId, senderId, message, timestamp)
             VALUES (?, ?, ?, NOW())";
 
@@ -45,7 +42,6 @@ try {
     $stmt->bind_param('sss', $chatSessionId, $adminUUID, $message);
 
     if ($stmt->execute()) {
-        // Update the updatedAt column in the chat_session table
         $updateSql = "UPDATE chat_session SET updatedAt = NOW() WHERE chatSessionId = ?";
         $updateStmt = $conn->prepare($updateSql);
         $updateStmt->bind_param('s', $chatSessionId);
