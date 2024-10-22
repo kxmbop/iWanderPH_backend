@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username = "root"; 
 $password = ""; 
-$dbname = "iwanderph_db"; 
+$dbname = "db_iwanderph"; 
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 

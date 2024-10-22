@@ -8,13 +8,13 @@ include '../../db.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if ($data && isset($data['name'], $data['username'], $data['password'])) {
+if ($data && isset($data['name'], $data['Username'], $data['password'])) {
     $name = $data['name'];
-    $username = $data['username'];
+    $Username = $data['Username'];
     $password = $data['password'];
 
-    $stmt = $conn->prepare("INSERT INTO admin (name, username, password) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $name, $username, $password);
+    $stmt = $conn->prepare("INSERT INTO admin (name, Username, password) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $name, $Username, $password);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Sign up successful']);

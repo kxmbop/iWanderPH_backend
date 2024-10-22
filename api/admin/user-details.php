@@ -24,6 +24,11 @@ if (isset($_GET['user_id'])) {
         
         if ($result->num_rows > 0) {
             $traveler = $result->fetch_assoc();
+            
+            if (!empty($traveler['ProfilePic'])) {
+                $traveler['ProfilePic'] = base64_encode($traveler['ProfilePic']);
+            }
+
             echo json_encode($traveler);
         } else {
             echo json_encode(['error' => 'Traveler not found']);
@@ -38,4 +43,5 @@ if (isset($_GET['user_id'])) {
 }
 
 $conn->close();
+
 ?>

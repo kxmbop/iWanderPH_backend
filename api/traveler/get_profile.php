@@ -31,7 +31,7 @@ if (!empty($token)) {
             exit;
         }
 
-        $profile_sql = "SELECT FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
+        $profile_sql = "SELECT travelerId, FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
         $stmt = $conn->prepare($profile_sql);
         $stmt->bind_param("i", $travelerID);
         $stmt->execute();

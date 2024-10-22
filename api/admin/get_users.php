@@ -22,26 +22,28 @@ $result = $conn->query($sql);
 if ($result->num_rows > 0) {
     while ($traveler = $result->fetch_assoc()) {
         $userId = $traveler['userId'];
-
+        
         $travelerGmvSql = "
-            SELECT COALESCE(SUM(b.TotalAmount), 0) as travelerGmv,
-            b.TotalAmount as totalAmount
-            FROM bookings b
+            SELECT COALESCE(SUM(b.TotalAmount), 0) as travelerGmv
+            FROM booking b
             WHERE b.TravelerID = $userId
         ";
         $travelerGmvResult = $conn->query($travelerGmvSql);
         $travelerGmvRow = $travelerGmvResult->fetch_assoc();
         $traveler['travelerGmv'] = $travelerGmvRow['travelerGmv'];
-
-        $merchantGmvSql = "
-            SELECT COALESCE(SUM(b.PayoutAmount), 0) as merchantGmv
-            FROM bookings b
-            JOIN merchant m ON b.MerchantID = m.MerchantID
-            WHERE m.TravelerID = $userId
-        ";
-        $merchantGmvResult = $conn->query($merchantGmvSql);
-        $merchantGmvRow = $merchantGmvResult->fetch_assoc();
-        $traveler['merchantGmv'] = $merchantGmvRow['merchantGmv'];
+        
+        if ($traveler['isMerchant']) {
+            $merchantGmvSql = "
+                SELECT COALESCE(SUM(b.PayoutAmount), 0) as merchantGmv
+                FROM bookings b
+                WHERE b.MerchantID = (SELECT MerchantID FROM merchant WHERE TravelerID = $userId)
+            ";
+            $merchantGmvResult = $conn->query($merchantGmvSql);
+            $merchantGmvRow = $merchantGmvResult->fetch_assoc();
+            $traveler['merchantGmv'] = $merchantGmvRow['merchantGmv'];
+        } else {
+            $traveler['merchantGmv'] = 0; 
+        }
 
         $bookingCountSql = "
             SELECT COUNT(*) as numBookings
@@ -51,6 +53,7 @@ if ($result->num_rows > 0) {
         $bookingCountResult = $conn->query($bookingCountSql);
         $bookingCountRow = $bookingCountResult->fetch_assoc();
         $traveler['numBookings'] = $bookingCountRow['numBookings'];
+
 
         $users[] = $traveler;
     }

@@ -9,7 +9,7 @@ include '../../db.php';
 $sql = "
     SELECT 
         t.TravelerID as travelerId,
-        t.Username as username,
+        t.Username as Username,
         b.BookingID as bookingId,
         b.TotalAmount as totalAmount
     FROM bookings b
@@ -29,7 +29,7 @@ if ($result->num_rows > 0) {
         // Initialize traveler data if not set
         if (!isset($travelerData[$travelerId])) {
             $travelerData[$travelerId] = [
-                'username' => $row['username'],
+                'Username' => $row['Username'],
                 'totalAmount' => 0,
                 'bookings' => []
             ];
@@ -46,7 +46,7 @@ $output = [];
 foreach ($travelerData as $travelerId => $data) {
     $output[] = [
         'travelerId' => $travelerId,
-        'username' => $data['username'],
+        'Username' => $data['Username'],
         'totalAmount' => $data['totalAmount'],
         'bookings' => $data['bookings']
     ];

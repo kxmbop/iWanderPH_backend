@@ -6,11 +6,12 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
+// Updated query to handle both room and transportation bookings
 $sql = "
     SELECT 
         b.BookingID as bookingId,
         b.BookingDate as bookingDate,
-        t.Username as travelerName,
+        t.username as travelerName,
         m.BusinessName as merchantName,
         b.Subtotal as subtotal,       
         b.VAT as vat,                
