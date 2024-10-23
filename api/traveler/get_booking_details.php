@@ -34,6 +34,9 @@ if (!empty($token)) {
             exit();
         }
 
+// Continue with booking details retrieval logic...
+
+
         // Fetch booking details
         $sql_booking = "SELECT * FROM booking WHERE BookingID = ? AND TravelerID = ?";
         $stmt_booking = $conn->prepare($sql_booking);
@@ -44,22 +47,17 @@ if (!empty($token)) {
         $stmt_booking->close();
 
         if ($booking) {
-            if (!empty($booking['PaymentUpload'])) {
-                $booking['PaymentUpload'] = base64_encode($booking['PaymentUpload']);
+            // Encode the proofOfPayment if it's not empty
+            if (!empty($booking['proofOfPayment'])) {
+                $booking['proofOfPayment'] = base64_encode($booking['proofOfPayment']);
             }
             $details['booking'] = $booking;
-        
-            if (isset($booking['RoomBookingID']) && !is_null($booking['RoomBookingID'])) {
-                $roomBookingID = $booking['RoomBookingID'];
-            } else {
-                $details['room_booking'] = null;
-            }
         }
 
 
         if ($bookingType === 'room') {
             // Fetch room booking details
-            $roomBookingID = $booking['RoomBookingID'];
+            $roomBookingID = $booking['roomBookingID'];
             $sql_room_booking = "SELECT CheckInDate, CheckOutDate, SpecialRequest, RoomID FROM room_booking WHERE RoomBookingID = ?";
             $stmt_room_booking = $conn->prepare($sql_room_booking);
             $stmt_room_booking->bind_param("i", $roomBookingID);
@@ -93,7 +91,7 @@ if (!empty($token)) {
             $stmt_merchant->close();
 
             if ($merchant && $merchant['profilePicture']) {
-                $merchant['profilePicture'] = base64_encode($merchant['profilePicture']); // Convert image to base64
+                $merchant['profilePicture'] = base64_encode($merchant['profilePicture']); 
             }
 
             $details['merchant'] = $merchant;

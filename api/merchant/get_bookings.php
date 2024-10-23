@@ -15,9 +15,9 @@ include '../../db.php';
 $key = "123456"; 
 $response = [];
 
-$data = json_decode(file_get_contents("php://input"), true);
-$token = $data['token'] ?? null;
-$status = $data['status'] ?? null;
+// Fetch token and status from query parameters using $_GET
+$token = $_GET['token'] ?? null;
+$status = $_GET['status'] ?? null;
 
 if (!$token || !$status) {
     echo json_encode(['error' => 'Token and status are required']);
@@ -28,10 +28,14 @@ try {
     $decoded = JWT::decode($token, new Key($key, 'HS256'));
     $travelerID = $decoded->TravelerID;
     $role = $decoded->role;
+    
+    // echo "TravelerID: $travelerID, Role: $role\n";
 } catch (Exception $e) {
     echo json_encode(['error' => 'Invalid token: ' . $e->getMessage()]);
     exit;
 }
+
+// echo 'Traveler ID: ' . $travelerID . ', Status: ' . $status . "\n";
 
 $merchantSql = "SELECT MerchantID FROM merchant WHERE TravelerID = ?";
 $merchantStmt = $conn->prepare($merchantSql);
@@ -47,12 +51,13 @@ if (!$merchantRow) {
 
 $merchantID = $merchantRow['MerchantID'];
 
+// echo 'Merchant ID: ' . $merchantID . "\n";
+
 $sql = "
 SELECT 
     b.bookingID,
     b.bookingDate,
     b.bookingStatus,
-    b.proofOfPayment,
     b.paymentTransactionID,
     b.paymentStatus,
     b.subtotal,
@@ -86,9 +91,20 @@ WHERE b.MerchantID = ? AND b.bookingStatus = ?
 ";
 
 $stmt = $conn->prepare($sql);
+if ($stmt === false) {
+    echo json_encode(['error' => 'SQL preparation failed: ' . $conn->error]);
+    exit;
+}
+
 $stmt->bind_param("is", $merchantID, $status);
 $stmt->execute();
 $result = $stmt->get_result();
+
+if ($result === false) {
+    echo json_encode(['error' => 'Query execution failed: ' . $stmt->error]);
+    exit;
+}
+
 $bookings = $result->fetch_all(MYSQLI_ASSOC);
 
 if (empty($bookings)) {
