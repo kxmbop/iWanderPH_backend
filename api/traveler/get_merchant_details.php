@@ -18,7 +18,7 @@ if ($merchantId === 0) {
     exit();
 }
 
-$sql_merchant = "SELECT BusinessName, Email, Contact, Address, profilePicture FROM merchant WHERE MerchantID = $merchantId";
+$sql_merchant = "SELECT merchantId, BusinessName, Email, Contact, Address, profilePicture FROM merchant WHERE MerchantID = $merchantId";
 $result_merchant = $conn->query($sql_merchant);
 
 if ($result_merchant && $result_merchant->num_rows > 0) {
