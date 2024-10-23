@@ -25,12 +25,12 @@ if (!empty($token)) {
         $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
 
-        // SQL query to get bookings based on TravelerID, including BookingType
-        $booking_sql = "SELECT BookingID, BookingDate, BookingStatus, TotalAmount, BookingType 
-                        FROM booking 
-                        WHERE TravelerID = ?";
+        $booking_sql = "SELECT b.BookingID, b.BookingDate, b.BookingStatus, b.TotalAmount, b.BookingType,
+                       (SELECT COUNT(*) FROM reviews r WHERE r.bookingID = b.BookingID AND r.TravelerID = ?) AS hasReview
+                        FROM booking b 
+                        WHERE b.TravelerID = ?";
         $stmt = $conn->prepare($booking_sql);
-        $stmt->bind_param("i", $travelerID);
+        $stmt->bind_param("ii", $travelerID, $travelerID);
         $stmt->execute();
         $booking_result = $stmt->get_result();
 
@@ -43,6 +43,7 @@ if (!empty($token)) {
         } else {
             $response["bookings"] = [];
         }
+
 
         $response["message"] = "Bookings retrieved successfully.";
         $response["success"] = true;
