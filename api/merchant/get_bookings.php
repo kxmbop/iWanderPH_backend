@@ -8,14 +8,13 @@ header("Content-Type: application/json");
 require '../../vendor/autoload.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Firebase\JWT\ExpiredException;
 
 include '../../db.php';
 
 $key = "123456"; 
 $response = [];
 
-// Fetch token and status from query parameters using $_GET
+// Fetch token and status from query parameters
 $token = $_GET['token'] ?? null;
 $status = $_GET['status'] ?? null;
 
@@ -27,16 +26,12 @@ if (!$token || !$status) {
 try {
     $decoded = JWT::decode($token, new Key($key, 'HS256'));
     $travelerID = $decoded->TravelerID;
-    $role = $decoded->role;
-    
-    // echo "TravelerID: $travelerID, Role: $role\n";
 } catch (Exception $e) {
     echo json_encode(['error' => 'Invalid token: ' . $e->getMessage()]);
     exit;
 }
 
-// echo 'Traveler ID: ' . $travelerID . ', Status: ' . $status . "\n";
-
+// Fetch MerchantID for the given TravelerID
 $merchantSql = "SELECT MerchantID FROM merchant WHERE TravelerID = ?";
 $merchantStmt = $conn->prepare($merchantSql);
 $merchantStmt->bind_param("i", $travelerID);
@@ -51,12 +46,12 @@ if (!$merchantRow) {
 
 $merchantID = $merchantRow['MerchantID'];
 
-// echo 'Merchant ID: ' . $merchantID . "\n";
-
+// SQL Query to fetch all relevant booking information
 $sql = "
 SELECT 
     b.bookingID,
     b.bookingDate,
+    b.bookingType,
     b.bookingStatus,
     b.paymentTransactionID,
     b.paymentStatus,
@@ -69,25 +64,66 @@ SELECT
     b.refundReason,
     b.refundStatus,
     b.refundTransactionID,
+    b.roomBookingID,
+    b.transportationBookingID,
+    
+    -- Room Booking details
     rb.RoomBookingID,
     rb.CheckInDate,
     rb.CheckOutDate,
     rb.SpecialRequest,
+    
+    -- Room details
+    r.RoomID,
+    r.RoomName,
+    r.RoomQuantity,
+    r.RoomRate,
+    r.GuestPerRoom,
+    
+    -- Room Inclusions
+    GROUP_CONCAT(DISTINCT inc.InclusionName SEPARATOR ', ') AS RoomInclusions,
+    
+    -- Room Views
+    GROUP_CONCAT(DISTINCT v.ViewName SEPARATOR ', ') AS RoomViews,
+    
+    -- Transportation Booking details
     tb.TransportationBookingID,
     tb.PickupDateTime,
     tb.DropoffDateTime,
     tb.PickupLocation,
     tb.DropoffLocation,
+    
+    -- Transportation details
+    tr.TransportationID,
+    tr.VehicleName,
+    tr.Model,
+    tr.Brand,
+    tr.Capacity,
+    tr.RentalPrice,
+    
+    -- Traveler info
     t.Username AS TravelerUsername,
     t.FirstName AS TravelerFirstName,
     t.LastName AS TravelerLastName,
+    
+    -- Merchant info
     m.BusinessName AS MerchantBusinessName
 FROM booking b
 LEFT JOIN room_booking rb ON b.roomBookingID = rb.RoomBookingID
+LEFT JOIN rooms r ON rb.RoomID = r.RoomID
+LEFT JOIN room_inclusions ri ON r.RoomID = ri.RoomID
+LEFT JOIN inclusions inc ON ri.InclusionID = inc.InclusionID
+LEFT JOIN room_view rv ON r.RoomID = rv.RoomID
+LEFT JOIN views v ON rv.ViewID = v.ViewID
+
 LEFT JOIN transportation_booking tb ON b.transportationBookingID = tb.TransportationBookingID
+LEFT JOIN transportations tr ON tb.TransportationID = tr.TransportationID
+
 JOIN traveler t ON b.TravelerID = t.TravelerID
 JOIN merchant m ON b.MerchantID = m.MerchantID
-WHERE b.MerchantID = ? AND b.bookingStatus = ?
+WHERE b.MerchantID = ? 
+AND b.bookingStatus = ?
+GROUP BY b.bookingID
 ";
 
 $stmt = $conn->prepare($sql);

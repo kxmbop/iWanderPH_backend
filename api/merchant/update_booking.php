@@ -38,13 +38,13 @@ if ($stmt->execute()) {
             $notificationMessage = "Booking #{$bookingID} is now completed. We hope you had a great experience!";
             break;
         case 'Cancelled':
-            $notificationMessage = "We're sorry to inform you that booking #{$bookingID} has been cancelled. If you have any questions, please reach out.";
+            $notificationMessage = "We're sorry to inform you that booking #{$bookingID} has been cancelled. If you have any questions, please reach out to support.";
             break;
         default:
             $notificationMessage = "Booking #{$bookingID} status has been updated.";
     }
 
-    $notificationStmt = $conn->prepare("INSERT INTO notifications (notificationMessage, userID, createdAt) VALUES (?, ?, ?, NOW())");
+    $notificationStmt = $conn->prepare("INSERT INTO notifications (bookingID, notificationMessage, userID, createdAt) VALUES (?, ?, ?, NOW())");
     $notificationStmt->bind_param("isi", $bookingID, $notificationMessage, $travelerID);
     $notificationStmt->execute();
 

@@ -21,6 +21,7 @@ if (!empty($token)) {
     try {
         $decoded = JWT::decode($token, new Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
+        $travelerUsername = $decoded->Username; // Assume Username is available in token
 
         $bookingData = json_decode($_POST['bookingData'], true);
         $bookingType = $bookingData['type'];
@@ -98,8 +99,15 @@ if (!empty($token)) {
             $stmt->close();
         }
 
+        // Add notification for the merchant
+        $notificationMessage = "Booking request sent by traveler '$travelerUsername' for Booking ID: $bookingID. Please review the booking details and confirm or reject the request at your earliest convenience. Make sure to review the provided information thoroughly, including any special requests from the traveler. Your prompt action will help ensure a smooth booking process.";
+        $stmt = $conn->prepare("INSERT INTO notifications (bookingID, notificationMessage, userID, isRead) VALUES (?, ?, ?, '0')");
+        $stmt->bind_param("isi", $bookingID, $notificationMessage, $merchantID);
+        $stmt->execute();
+        $stmt->close();
+
         $response["success"] = true;
-        $response["message"] = "Booking created successfully.";
+        $response["message"] = "Booking created and notification sent successfully.";
     } catch (Exception $e) {
         $response["success"] = false;
         $response["message"] = $e->getMessage();
@@ -108,7 +116,7 @@ if (!empty($token)) {
     $response["success"] = false;
     $response["message"] = "No token provided.";
 }
-//hi
+
 $conn->close();
 echo json_encode($response);
 ?>
