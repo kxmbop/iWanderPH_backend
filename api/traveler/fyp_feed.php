@@ -10,16 +10,41 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 include '../../db.php';
+require '../../vendor/autoload.php';
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Firebase\JWT\ExpiredException;
 
 $response = [];
+$key = "123456"; // Your JWT secret key
+
+// Extract token from headers
+$headers = getallheaders();
+$authorizationHeader = $headers['Authorization'] ?? '';
+$token = str_replace('Bearer ', '', $authorizationHeader);
+
+// Get TravelerID from the token
+$travelerID = null;
+if (!empty($token)) {
+    try {
+        $decoded = JWT::decode($token, new Key($key, 'HS256'));
+        $travelerID = $decoded->TravelerID;
+    } catch (Exception $e) {
+        // Handle token errors
+        $response['error'] = 'Invalid token: ' . $e->getMessage();
+        echo json_encode($response);
+        exit;
+    }
+}
 
 try {
-    // Fetch all reviews and randomize order
+    // Fetch all reviews and check if the user has liked each review
     $reviewQuery = "
         SELECT r.ReviewID, r.ReviewComment, r.ReviewRating, b.BookingID, t.TravelerID, t.FirstName, t.username, t.LastName, t.ProfilePic,
             bs.BusinessName, bs.address,  
             (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes,
-            (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments
+            (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments,
+            (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID AND userID = ?) AS likedByUser
         FROM reviews r
         INNER JOIN booking b ON r.BookingID = b.BookingID
         INNER JOIN traveler t ON b.TravelerID = t.TravelerID
@@ -27,7 +52,10 @@ try {
         ORDER BY RAND()
     ";
     
-    $reviewResult = mysqli_query($conn, $reviewQuery);
+    $stmt = $conn->prepare($reviewQuery);
+    $stmt->bind_param("i", $travelerID);
+    $stmt->execute();
+    $reviewResult = $stmt->get_result();
 
     if ($reviewResult === false) {
         $response['error'] = 'Failed to retrieve reviews: ' . mysqli_error($conn);
@@ -44,6 +72,7 @@ try {
             'rating' => $reviewRow['ReviewRating'],
             'likes' => $reviewRow['likes'],
             'comments' => $reviewRow['comments'],
+            'likedByUser' => $reviewRow['likedByUser'] > 0, // True if the user has liked the review
             'traveler' => [
                 'travelerID' => $reviewRow['TravelerID'],
                 'username' => $reviewRow['username'],
@@ -57,7 +86,8 @@ try {
             ],
             'images' => []
         ];
-    
+
+        // Fetch review images
         $imageQuery = "SELECT Image FROM review_images WHERE ReviewID = " . $reviewRow['ReviewID'];
         $imageResult = mysqli_query($conn, $imageQuery);
         
@@ -66,15 +96,15 @@ try {
             echo json_encode($response);
             exit;
         }
-    
+
         while ($imageRow = mysqli_fetch_assoc($imageResult)) {
             $base64Image = base64_encode($imageRow['Image']);
             $review['images'][] = $base64Image;
         }
-    
+
         $reviews[] = $review;
     }
-    
+
     $data = [
         'reviews' => $reviews
     ];
@@ -88,3 +118,4 @@ try {
 }
 
 mysqli_close($conn);
+?>
