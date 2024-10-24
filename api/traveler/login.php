@@ -1,5 +1,5 @@
 <?php
-session_start(); // Start a new session
+session_start(); 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($username) || empty($password)) {
         $message = "Please enter both username and password.";
     } else {
-        $sql = "SELECT TravelerID, Username, Password, isDeactivated, isSuspended, isBanned FROM traveler WHERE Username = ?";
+        $sql = "SELECT * FROM traveler WHERE Username = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $username);
         $stmt->execute();
@@ -38,6 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $key = "123456"; 
                     $payload = [
                         'iat' => time(),
+                        'role'=> 'traveler',
                         'TravelerID' => $user["TravelerID"],
                         'Username' => $user["Username"]
                     ];
@@ -45,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $algorithm = 'HS256';
                     $jwt = JWT::encode($payload, $key, $algorithm);
             
-                    $_SESSION['token'] = $jwt; // Store JWT in session
+                    $_SESSION['token'] = $jwt; 
 
                     $success = true;
                     $message = "Login successful.";

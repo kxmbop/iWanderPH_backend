@@ -47,9 +47,9 @@ if (!empty($token)) {
         $stmt_booking->close();
 
         if ($booking) {
-            // Encode the PaymentUpload if it's not empty
-            if (!empty($booking['PaymentUpload'])) {
-                $booking['PaymentUpload'] = base64_encode($booking['PaymentUpload']);
+            // Encode the proofOfPayment if it's not empty
+            if (!empty($booking['proofOfPayment'])) {
+                $booking['proofOfPayment'] = base64_encode($booking['proofOfPayment']);
             }
             $details['booking'] = $booking;
         }
@@ -57,7 +57,7 @@ if (!empty($token)) {
 
         if ($bookingType === 'room') {
             // Fetch room booking details
-            $roomBookingID = $booking['RoomBookingID'];
+            $roomBookingID = $booking['roomBookingID'];
             $sql_room_booking = "SELECT CheckInDate, CheckOutDate, SpecialRequest, RoomID FROM room_booking WHERE RoomBookingID = ?";
             $stmt_room_booking = $conn->prepare($sql_room_booking);
             $stmt_room_booking->bind_param("i", $roomBookingID);
@@ -82,7 +82,7 @@ if (!empty($token)) {
 
             // Fetch merchant details
             $merchantID = $room['MerchantID'];
-            $sql_merchant = "SELECT BusinessName, Email, Contact, Address, merchant_img FROM merchant WHERE MerchantID = ?";
+            $sql_merchant = "SELECT BusinessName, Email, Contact, Address, profilePicture FROM merchant WHERE MerchantID = ?";
             $stmt_merchant = $conn->prepare($sql_merchant);
             $stmt_merchant->bind_param("i", $merchantID);
             $stmt_merchant->execute();
@@ -90,8 +90,8 @@ if (!empty($token)) {
             $merchant = $result_merchant->fetch_assoc();
             $stmt_merchant->close();
 
-            if ($merchant && $merchant['merchant_img']) {
-                $merchant['merchant_img'] = base64_encode($merchant['merchant_img']); // Convert image to base64
+            if ($merchant && $merchant['profilePicture']) {
+                $merchant['profilePicture'] = base64_encode($merchant['profilePicture']); 
             }
 
             $details['merchant'] = $merchant;
@@ -137,7 +137,7 @@ if (!empty($token)) {
 
             // Fetch merchant details
             $merchantID = $transportation['MerchantID'];
-            $sql_merchant = "SELECT BusinessName, Email, Contact, Address, merchant_img FROM merchant WHERE MerchantID = ?";
+            $sql_merchant = "SELECT BusinessName, Email, Contact, Address, profilePicture FROM merchant WHERE MerchantID = ?";
             $stmt_merchant = $conn->prepare($sql_merchant);
             $stmt_merchant->bind_param("i", $merchantID);
             $stmt_merchant->execute();
@@ -145,8 +145,8 @@ if (!empty($token)) {
             $merchant = $result_merchant->fetch_assoc();
             $stmt_merchant->close();
 
-            if ($merchant && $merchant['merchant_img']) {
-                $merchant['merchant_img'] = base64_encode($merchant['merchant_img']); // Convert image to base64
+            if ($merchant && $merchant['profilePicture']) {
+                $merchant['profilePicture'] = base64_encode($merchant['profilePicture']); // Convert image to base64
             }
 
             $details['merchant'] = $merchant;

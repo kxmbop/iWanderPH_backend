@@ -24,8 +24,14 @@ if (!empty($token)) {
     try {
         $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
+        $role = $decoded->role;
 
-        $profile_sql = "SELECT FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
+        if ($role !== 'traveler') {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
+            exit;
+        }
+
+        $profile_sql = "SELECT travelerId, FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
         $stmt = $conn->prepare($profile_sql);
         $stmt->bind_param("i", $travelerID);
         $stmt->execute();
