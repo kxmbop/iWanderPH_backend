@@ -32,7 +32,7 @@ if (!empty($token)) {
         }
 
         // Fetch traveler profile information
-        $profile_sql = "SELECT travelerId, FirstName, LastName, Username, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
+        $profile_sql = "SELECT travelerId, FirstName, LastName, Username, Mobile, Email, Address, Password, ProfilePic, Bio FROM traveler WHERE TravelerID = ?";
         $stmt = $conn->prepare($profile_sql);
         $stmt->bind_param("i", $travelerID);
         $stmt->execute();

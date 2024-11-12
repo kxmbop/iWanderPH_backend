@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
 require '../../vendor/autoload.php';
@@ -13,14 +13,16 @@ include '../../db.php';
 $response = [];
 $key = "123456"; 
 
-$headers = getallheaders();
-$authorizationHeader = $headers['Authorization'] ?? '';
-$token = str_replace('Bearer ', '', $authorizationHeader);
+// Read the POST body to get the token
+$data = json_decode(file_get_contents("php://input"), true);
+$token = $data['token'] ?? '';  
 
-if (!empty($token)) {
+
+if ($token) {
     try {
+        // Decode the token
         $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
-        $adminID = $decoded->adminID;
+        $adminID = $decoded->adminID;  
 
         // Adjusted SQL query to retrieve the necessary data
         $sql = "SELECT adminID, firstName, lastName, email, phoneNumber, address, cityState, postCode, taxID, profilePicture, username, password, adminUserType
