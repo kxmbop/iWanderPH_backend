@@ -28,23 +28,23 @@ if (!empty($token)) {
             echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
             exit;
         }
-
         // Fetch completed bookings with associated merchant information
         $completedBookingsQuery = "
             SELECT m.businessName, m.email, m.contact, m.address, m.profilePicture
             FROM booking b
             JOIN merchant m ON b.merchantID = m.merchantID
-            WHERE b.TravelerID = ? AND b.bookingStatus = 'Completed'
+            WHERE b.travelerID = ? AND b.bookingStatus = 'Completed'
         ";
-        $stmt = $conn->prepare($completedBookingsQuery);
+        $stmt = $conn->prepare($completedBookingsQuery);    
         $stmt->bind_param("i", $travelerID);
         $stmt->execute();
         $completedBookingsResult = $stmt->get_result();
 
         $completedBookings = [];
         while ($booking = $completedBookingsResult->fetch_assoc()) {
-            $booking['profilePicture'] = base64_encode($booking['profilePicture']); // Encode profile picture for frontend display
+            $booking['profilePicture'] = base64_encode($booking['profilePicture']); 
             $completedBookings[] = $booking;
+            // echo json_encode(['status' => 'success', 'data' => $completedBookings]);
         }
         
         $response["completedBookings"] = $completedBookings;
@@ -64,5 +64,5 @@ if (!empty($token)) {
 
 $conn->close();
 
-header('Content-Type: application/json');
 echo json_encode($response);
+?>  
