@@ -21,7 +21,7 @@ if (!empty($token)) {
     try {
         $decoded = JWT::decode($token, new Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
-        $travelerUsername = $decoded->Username; // Assume Username is available in token
+        $travelerUsername = $decoded->Username;
 
         $bookingData = json_decode($_POST['bookingData'], true);
         $bookingType = $bookingData['type'];

@@ -62,8 +62,18 @@ if (!empty($token)) {
                     }
                 }
 
-                $response["success"] = true;
-                $response["message"] = "Review submitted successfully.";
+                // Update the booking status to 'Completed'
+                $update_booking_sql = "UPDATE booking SET bookingStatus = 'Completed' WHERE bookingID = ?";
+                $update_stmt = $conn->prepare($update_booking_sql);
+                $update_stmt->bind_param("i", $bookingID);
+
+                if ($update_stmt->execute()) {
+                    $response["success"] = true;
+                    $response["message"] = "Review submitted successfully, and booking status updated to 'Completed'.";
+                } else {
+                    $response["success"] = false;
+                    $response["message"] = "Review submitted, but failed to update booking status.";
+                }
             } else {
                 $response["success"] = false;
                 $response["message"] = "Failed to submit review.";

@@ -4,7 +4,7 @@ header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-include '../../db.php'; // Use your MySQLi connection
+include '../../db.php';
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     echo json_encode(['error' => 'Transportation ID is required']);
@@ -12,9 +12,10 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 }
 
 $transportationId = intval($_GET['id']);
+error_log("Transportation ID received: " . $transportationId);
 
 try {
-    // Prepare the SQL query to fetch transportation details
+    // SQL query to fetch transportation details
     $query = "
         SELECT t.VehicleName, t.Model, t.Brand, t.Capacity, t.RentalPrice, t.DriverName, t.DriverContactNo, tg.ImageFile
         FROM transportations t
@@ -22,7 +23,6 @@ try {
         WHERE t.TransportationID = ?
     ";
 
-    // Use a prepared statement with MySQLi
     $stmt = $conn->prepare($query);
     $stmt->bind_param('i', $transportationId);
     $stmt->execute();
@@ -34,10 +34,16 @@ try {
         exit;
     }
 
-    // Return transportation details as JSON
+    // Encode image as Base64 if it exists
+    if (!empty($transportationDetails['ImageFile'])) {
+        $transportationDetails['ImageFile'] = 'data:image/jpeg;base64,' . base64_encode($transportationDetails['ImageFile']);
+    }
+
+    // Output the JSON result
     echo json_encode($transportationDetails);
+
 } catch (Exception $e) {
+    error_log("Error: " . $e->getMessage());
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 }
-//hello
 ?>

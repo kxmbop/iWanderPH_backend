@@ -27,13 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $header = $_POST['header']; 
     $description = $_POST['description']; 
     $visibleto = $_POST['visibleto']; 
-    $dedicatedto = $_POST['dedicatedto']; 
 
-    error_log("Header: $header, Description: $description, Visible To: $visibleto, Dedicated To: $dedicatedto");
+    error_log("Header: $header, Description: $description, Visible To: $visibleto");
 
-    $sql = "INSERT INTO announcements (header, description, visibleTo, dedicatedTo, createdAt) VALUES (?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO announcements (header, description, visibleTo, createdAt) VALUES ( ?, ?, ?, NOW())";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssss", $header, $description, $visibleto, $dedicatedto);
+    $stmt->bind_param("sss", $header, $description, $visibleto);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Announcement successfully posted!']);
@@ -51,11 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
     $header = $_PUT['header']; 
     $description = $_PUT['description']; 
     $visibleto = $_PUT['visibleto']; 
-    $dedicatedto = $_PUT['dedicatedto'];
 
-    $sql = "UPDATE notifications SET header = ?, description = ?, visibleTo = ?, dedicatedTo = ? WHERE notificationID = ?";
+    $sql = "UPDATE notifications SET header = ?, description = ?, visibleTo = ? WHERE notificationID = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssi", $header, $description, $visibleto, $dedicatedto, $notificationID);
+    $stmt->bind_param("sssi", $header, $description, $visibleto, $notificationID);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Notification successfully updated!']);

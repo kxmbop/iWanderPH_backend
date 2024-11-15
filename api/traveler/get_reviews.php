@@ -57,12 +57,20 @@ try {
     foreach ($bookingIDs as $bookingID) {
         // Fetch reviews based on BookingID
         $reviewQuery = "
-            SELECT r.ReviewID, r.ReviewComment, r.ReviewRating, 
-                   (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes,
-                   (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments
-            FROM reviews r
-            WHERE r.BookingID = '$bookingID'
+        SELECT 
+            r.ReviewID, 
+            r.ReviewComment, 
+            r.ReviewRating, 
+            (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes, 
+            (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments,
+            EXISTS(SELECT 1 FROM review_likes WHERE ReviewID = r.ReviewID AND userID = '$travelerID') AS liked
+        FROM reviews r
+        WHERE r.BookingID = '$bookingID'
         ";
+
+
+
+
         $reviewResult = mysqli_query($conn, $reviewQuery);
 
         if ($reviewResult === false) {

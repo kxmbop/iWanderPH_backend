@@ -48,3 +48,4 @@ echo json_encode($supportAgents);
 // Step 6: Close the connection
 $conn->close();
 ?>
+
