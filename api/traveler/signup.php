@@ -1,4 +1,5 @@
 <?php
+
 // Enable error reporting for debugging (optional, remove in production)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -34,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $profilePic = null;
     if (isset($_FILES['profilePic']) && $_FILES['profilePic']['error'] == UPLOAD_ERR_OK) {
         $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']); // Convert image to binary data
+    } else {
+        echo json_encode(['error' => 'Profile picture upload failed or no file uploaded.']);
+        exit;
     }
 
     // Step 4: Check if passwords match and are not empty
@@ -72,3 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else {
     echo json_encode(['error' => 'Invalid request method.']);
 }
+
+
+?>

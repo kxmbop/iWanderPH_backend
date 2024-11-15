@@ -14,7 +14,7 @@ include '../../db.php';
 $response = [];
 $key = "123456";  // Replace with your actual key
 
-$token = $_SESSION['token'] ?? '';
+// $token = $_SESSION['token'] ?? '';
 
 $headers = getallheaders();
 $authorizationHeader = $headers['Authorization'] ?? '';
