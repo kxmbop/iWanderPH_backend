@@ -1,36 +1,54 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
 include '../../db.php';
-$data = json_decode(file_get_contents("php://input"), true);
 
-$firstName = $data['firstName'];
-$lastName = $data['lastName'];
-$bio = $data['bio'];
-$taxID = $data['taxID'];
-$username = $data['username'];
-$password = password_hash($data['password'], PASSWORD_BCRYPT);
+// Step 1: Retrieve the data from the request body
+$data = json_decode(file_get_contents("php://input"));
 
-$query = "INSERT INTO support_agents (firstName, lastName, bio, taxID, username, password) VALUES (?, ?, ?, ?, ?, ?)";
-$stmt = $conn->prepare($query);
-
-$response = [];
-if ($stmt) {
-    $stmt->bind_param("ssssss", $firstName, $lastName, $bio, $taxID, $username, $password);
-    if ($stmt->execute()) {
-        $response['status'] = 'success';
-    } else {
-        $response['status'] = 'error';
-        $response['message'] = 'Execution error: ' . $stmt->error;
-    }
-} else {
-    $response['status'] = 'error';
-    $response['message'] = 'Prepare error: ' . $conn->error;
+// Step 2: Ensure required fields are provided
+if (!isset($data->firstName) || !isset($data->lastName) || !isset($data->username) || !isset($data->password)) {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Required fields are missing"]);
+    exit();
 }
 
-echo json_encode($response);
+// Step 3: Hash the password before storing it
+$password = password_hash($data->password, PASSWORD_BCRYPT);
+
+// Step 4: Prepare the SQL query to insert the admin data
+$query = "INSERT INTO admin (firstName, lastName, adminUserType, taxID, username, password) 
+          VALUES (?, ?, ?, ?, ?, ?)";
+
+// Prepare the statement
+$stmt = $conn->prepare($query);
+
+if ($stmt) {
+    // Step 5: Bind parameters and execute the query
+    $firstName = $data->firstName;
+    $lastName = $data->lastName;
+    $adminUserType = 'SupportAgent';  // User type for support agents
+    $taxID = isset($data->taxID) && !empty($data->taxID) ? $data->taxID : NULL;
+    $username = $data->username;
+
+    // Bind parameters to the query
+    $stmt->bind_param("ssssss", $firstName, $lastName, $adminUserType, $taxID, $username, $password);
+
+    // Execute the statement
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success", "message" => "Admin account created successfully"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["status" => "error", "message" => "Failed to create admin account"]);
+    }
+} else {
+    http_response_code(500);
+    echo json_encode(["status" => "error", "message" => "Failed to prepare the query"]);
+}
+
+$stmt->close();
 $conn->close();
 ?>

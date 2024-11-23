@@ -1,47 +1,59 @@
-<?php
-// Enable CORS (if you're making requests from a different domain)
-header('Access-Control-Allow-Origin: *');
-header('Content-Type: application/json');
+<?php 
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
 
-// Database connection
-$servername = "localhost"; // Database server
-$username = "root"; // Database username
-$password = ""; // Database password
-$dbname = "your_database_name"; // Your database name
+include '../../db.php';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-// SQL query to get payment summary
-$sql = "
-     SELECT 
-        m.bookingID,
-        m.businessName,
-        SUM(b.subtotal * 0.12) AS totalRevenue
+// SQL query to get the booking trends
+$sql = "SELECT 
+        DATE_FORMAT(b.bookingDate, '%M %Y') AS monthYear,
+        b.bookingID, 
+        m.businessName AS merchantName, 
+        b.bookingStatus, 
+        (b.subtotal - b.payoutAmount) AS totalRevenue
     FROM booking b
     JOIN merchant m ON b.merchantID = m.merchantID
-    WHERE b.paymentStatus = 'successful'
-    GROUP BY m.merchantID
-";
+    WHERE b.bookingDate >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    AND b.bookingStatus = 'completed'
+    ORDER BY b.bookingDate ASC"; 
 
 $result = $conn->query($sql);
 
 $payments = [];
+$labels = [];
+$data = [];
 
 // Check if there are results
 if ($result->num_rows > 0) {
-    // Fetch all payments
     while ($row = $result->fetch_assoc()) {
-        $payments[] = $row;
+        $payments[] = [
+            'month' => $row['monthYear'],
+            'bookingID' => $row['bookingID'],
+            'merchantName' => $row['merchantName'],
+            'bookingStatus' => $row['bookingStatus'],
+            'totalRevenue' => (float)$row['totalRevenue']
+        ];
+
+        // Prepare labels and data for the chart
+        $labels[] = $row['monthYear'];
+        $data[] = (float)$row['totalRevenue'];
     }
 }
 
-// Return data as JSON
-echo json_encode($payments);
+// Log the output before sending it back
+error_log(json_encode(['labels' => $labels, 'data' => $data]));
+
+$response = [
+    'payments' => [
+        'details' => $payments,
+        'labels' => array_unique($labels), // Ensure unique labels for charting
+        'data' => $data
+    ]
+];
+
+echo json_encode($response);
 
 // Close the connection
 $conn->close();

@@ -6,25 +6,32 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
-
+// Create labels for the last 6 months (from the current month to the past 5 months)
 $labels = [];
 for ($i = 5; $i >= 0; $i--) {
     $monthYear = date("F Y", strtotime("-$i month"));
     $labels[] = $monthYear;
 }
 
-// Initialize monthlyTrends with labels and empty data for each month
+// Initialize arrays to hold the trends and data
 $monthlyTrends = ["labels" => $labels, "data" => []];
 $monthlyData = array_fill_keys($labels, 0); // Initialize total bookings for each month
+$trends = [];
 
-// Query for monthly booking trends
+// Query to fetch monthly booking trends with additional information (e.g., merchant name, booking status)
 $sql = "SELECT 
-            DATE_FORMAT(bookingDate, '%M %Y') AS monthYear,
-            COUNT(*) AS totalBookings
-            FROM booking
-            WHERE bookingDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-            GROUP BY YEAR(bookingDate), MONTH(bookingDate)
-            ORDER BY YEAR(bookingDate), MONTH(bookingDate)";
+            DATE_FORMAT(b.bookingDate, '%M %Y') AS monthYear,
+            b.bookingID,  
+            b.merchantID,
+            b.bookingStatus,  
+            b.subtotal,
+            b.payoutAmount,
+            m.businessName AS merchantName
+        FROM booking b
+        JOIN merchant m ON b.merchantID = m.merchantID
+        WHERE b.bookingDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        AND b.bookingStatus != 'refunded'  
+        ORDER BY b.bookingDate";
 
 $result = $conn->query($sql);
 
@@ -34,43 +41,37 @@ if ($result === false) {
 }
 
 if ($result->num_rows > 0) {
+    // Process the results
     while ($row = $result->fetch_assoc()) {
         $monthYear = $row["monthYear"];
-        $totalBookings = (int)$row["totalBookings"];
+        $bookingID = $row["bookingID"];
+        $merchantName = $row["merchantName"];
+        $bookingStatus = $row["bookingStatus"];
+        $subtotal = (float)$row["subtotal"];
+        $payoutAmount = (float)$row["payoutAmount"];
+        
+        // Calculate booking percentage only if the booking is 'completed'
+        if ($bookingStatus === 'completed') {
+            // Calculate booking percentage
+            $bookingPercentage = (($subtotal - $payoutAmount) / 500 ) / 100; 
 
-        // Add the total bookings for that month
-        $monthlyData[$monthYear] = $totalBookings;
+            // Add data to the trends array
+            $trends[] = [
+                "month" => $monthYear,
+                "bookingID" => $bookingID,
+                "merchantName" => $merchantName,
+                "bookingStatus" => $bookingStatus,
+                "bookingPercentage" => $bookingPercentage
+            ];
+        }
+
+        // Update monthly data for the graph
+        $monthlyData[$monthYear] = isset($monthlyData[$monthYear]) ? $monthlyData[$monthYear] + 1 : 1;
     }
 
-    // Prepare the data for the response
+    // Prepare the monthly trends data for the response (graph data)
     foreach ($labels as $monthYear) {
         $monthlyTrends["data"][] = $monthlyData[$monthYear];
-    }
-}
-
-
-$sqlCustomerCount = "SELECT 
-                        merchantID,
-                        COUNT(*) AS bookingCount
-                    FROM booking
-                    GROUP BY merchantID";
-
-$resultCustomers = $conn->query($sqlCustomerCount);
-
-// Initialize counters for new and repeat customers
-$newCustomerCount = 0;
-$repeatCustomerCount = 0;
-
-if ($resultCustomers && $resultCustomers->num_rows > 0) {
-    while ($row = $resultCustomers->fetch_assoc()) {
-        $bookingCount = (int)$row["bookingCount"];
-        
-        // If customer has only 1 booking, they are new, otherwise, they are repeat
-        if ($bookingCount == 1) {
-            $newCustomerCount++;
-        } else {
-            $repeatCustomerCount++;
-        }
     }
 }
 
@@ -78,29 +79,24 @@ if ($resultCustomers && $resultCustomers->num_rows > 0) {
 $sqlRevenueTrends = "SELECT 
         DATE_FORMAT(bookingDate, '%M %Y') AS monthYear,
         SUM(subtotal - payoutAmount) AS totalRevenue
-    FROM booking
-    WHERE bookingDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-    GROUP BY YEAR(bookingDate), MONTH(bookingDate)
-    ORDER BY YEAR(bookingDate), MONTH(bookingDate)
-";
-
+        FROM booking
+        WHERE bookingDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY YEAR(bookingDate), MONTH(bookingDate)
+        ORDER BY YEAR(bookingDate), MONTH(bookingDate)";
 
 $resultRevenue = $conn->query($sqlRevenueTrends);
 
 // Initialize revenue data
-$revenueData = array_fill_keys($labels, 0); // Initialize revenue data for each month
+$revenueData = array_fill_keys($labels, 0);
 
 if ($resultRevenue && $resultRevenue->num_rows > 0) {
     while ($row = $resultRevenue->fetch_assoc()) {
         $monthYear = $row["monthYear"];
         $totalRevenue = (float)$row["totalRevenue"];
-
-        // Add the revenue for that month
         $revenueData[$monthYear] = $totalRevenue;
     }
 }
 
-// Prepare the revenue data for the response
 $revenueTrends = ["labels" => $labels, "data" => []];
 foreach ($labels as $monthYear) {
     $revenueTrends["data"][] = $revenueData[$monthYear];
@@ -109,14 +105,9 @@ foreach ($labels as $monthYear) {
 // Return the data as JSON
 echo json_encode([
     "monthlyTrends" => $monthlyTrends,
-    "customerDemographics" => [
-        "new" => $newCustomerCount,
-        "repeat" => $repeatCustomerCount
-    ],
-    "revenueTrends" => $revenueTrends  // Add the revenue data to the response
+    "revenueTrends" => $revenueTrends,
+    "trends" => $trends
 ]);
-
-
 
 $conn->close();
 ?>
