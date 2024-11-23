@@ -33,7 +33,19 @@ if ($result_merchant && $result_merchant->num_rows > 0) {
     $response['merchant'] = null; 
 }
 
-$sql_rooms = "SELECT RoomID, RoomName, RoomRate, GuestPerRoom FROM rooms WHERE MerchantID = $merchantId";
+$sql_rooms = "SELECT 
+    r.RoomID, 
+    r.RoomName, 
+    r.RoomRate, 
+    r.RoomQuantity,
+    r.GuestPerRoom,
+    (SELECT COUNT(*) 
+     FROM booking b 
+     WHERE b.roomBookingID = r.RoomID 
+       AND b.bookingStatus NOT IN ('Completed', 'Cancelled', 'Refunded')) AS ActiveBookings
+FROM rooms r
+WHERE r.MerchantID = $merchantId;
+";
 $result_rooms = $conn->query($sql_rooms);
 
 $rooms = array();

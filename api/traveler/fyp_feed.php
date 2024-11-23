@@ -38,7 +38,7 @@ if (!empty($token)) {
 }
 
 try {
-    // Fetch all reviews and check if the user has liked each review
+    // Fetch all reviews with privacy = 'public' and check if the user has liked each review
     $reviewQuery = "
         SELECT r.ReviewID, r.ReviewComment, r.ReviewRating, b.BookingID, t.TravelerID, t.FirstName, t.username, t.LastName, t.ProfilePic,
             bs.BusinessName, bs.address,  
@@ -49,6 +49,7 @@ try {
         INNER JOIN booking b ON r.BookingID = b.BookingID
         INNER JOIN traveler t ON b.TravelerID = t.TravelerID
         INNER JOIN merchant bs ON b.merchantID = bs.merchantID  
+        WHERE r.privacy = 'public' -- Only include public reviews
         ORDER BY RAND()
     ";
     

@@ -59,16 +59,16 @@ if (isset($_GET['travelerID'])) {
     $stmt3 = $conn->prepare($completedBookingsQuery);
     $stmt3->bind_param("i", $travelerID);
     $stmt3->execute();
-    $completedBookingsResult = $stmt3->get_result();
+    $bookingsResult = $stmt3->get_result();
 
     $completedBookings = [];
-    while ($booking = $completedBookingsResult->fetch_assoc()) {
-        if (!empty($booking['profilePicture'])) {
-            $booking['profilePicture'] = 'data:image/jpeg;base64,' . base64_encode($booking['profilePicture']);
+    while ($row = $bookingsResult->fetch_assoc()) {
+        if (!empty($row['profilePicture'])) {
+            $row['profilePicture'] = 'data:image/jpeg;base64,' . base64_encode($row['profilePicture']);
         }
-        $completedBookings[] = $booking;
+        $completedBookings[] = $row;
     }
-    $response["completedBookings"] = $completedBookings;
+    $response['completedBookings'] = $completedBookings;
 
 } else {
     $response['error'] = 'No travelerID provided.';

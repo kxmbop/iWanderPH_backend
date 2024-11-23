@@ -6,12 +6,12 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 require '../../vendor/autoload.php';
 use Firebase\JWT\JWT;
-use Firebase\JWT\ExpiredException;
+use Firebase\JWT\Key;
 
 include '../../db.php';
 
 $response = [];
-$key = "123456"; // Your secret key
+$key = "123456"; // Replace with your secret key
 
 // Get token from headers
 $headers = getallheaders();
@@ -22,6 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     // Parse JSON input
     $input = json_decode(file_get_contents("php://input"), true);
 
+    // Debugging: Log raw input data to verify
+    file_put_contents('php://stderr', print_r($input, TRUE));
+
     if (empty($token)) {
         $response['error'] = 'Unauthorized';
         echo json_encode($response);
@@ -30,49 +33,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     try {
         // Decode the JWT token
-        $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
+        $decoded = JWT::decode($token, new Key($key, 'HS256'));
         $travelerID = $decoded->TravelerID;
 
-    
         // Get data from request
         $reviewID = $input['reviewID'] ?? null;
         $reviewComment = $input['reviewComment'] ?? '';
-    
-        // Debugging: Log values to verify they are correct
-        file_put_contents('php://stderr', print_r("Decoded TravelerID: $travelerID, Received ReviewID: $reviewID, Comment: $reviewComment\n", TRUE));
-    
-        // Validate data
-        if (!$reviewID || !$reviewComment) {
-            $response['error'] = 'Missing data for updating review.';
+        $privacy = $input['privacy'] ?? 'public'; // Default to 'public' if not set
+
+        // Validate privacy value
+        if (!in_array($privacy, ['public', 'private'])) {
+            $response['error'] = 'Invalid privacy value. Allowed values are "public" or "private".';
             echo json_encode($response);
             exit;
         }
-        // Update review in the database
-        $sql = "UPDATE reviews SET ReviewComment = ? WHERE ReviewID = ? AND TravelerID = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sii", $reviewComment, $reviewID, $travelerID);
 
-        if ($stmt->execute()) {
-            if ($stmt->affected_rows > 0) { // Check if any rows were affected
-                $response['success'] = true;
-                $response['message'] = 'Review updated successfully';
-            } else {
-                $response['success'] = false;
-                $response['error'] = 'No rows affected. Check if reviewID and travelerID are correct.';
-            }
-        } else {
-            $response['error'] = 'Failed to update review';
+        // Debugging: Log values to verify they are correct
+        file_put_contents('php://stderr', print_r("Decoded TravelerID: $travelerID, Received ReviewID: $reviewID, Comment: $reviewComment, Privacy: $privacy\n", TRUE));
+
+        // Validate data
+        if (!$reviewID || empty($reviewComment)) {
+            $response['error'] = 'Invalid input data. Review ID and Comment are required.';
+            echo json_encode($response);
+            exit;
         }
 
-    } catch (ExpiredException $e) {
-        $response['error'] = 'Token has expired';
-    } catch (Exception $e) {
-        $response['error'] = 'Invalid token';
-    }
-} else {
-    $response['error'] = 'Invalid request method';
-}
+        // Prepare the SQL statement to update both reviewComment and privacy
+        $stmt = $conn->prepare("UPDATE reviews SET ReviewComment = ?, privacy = ? WHERE ReviewID = ? AND TravelerID = ?");
+        $stmt->bind_param("ssii", $reviewComment, $privacy, $reviewID, $travelerID);
 
-$conn->close();
-echo json_encode($response);
+        // Execute the query
+        if ($stmt->execute()) {
+            $response['success'] = true;
+            $response['message'] = 'Review updated successfully.';
+        } else {
+            $response['error'] = 'Failed to update review. ' . $stmt->error;
+        }
+
+        // Close the prepared statement
+        $stmt->close();
+
+    } catch (Exception $e) {
+        $response['error'] = 'Unauthorized: ' . $e->getMessage();
+    }
+
+    // Return response
+    echo json_encode($response);
+}
 ?>

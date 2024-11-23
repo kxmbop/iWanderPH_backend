@@ -30,7 +30,7 @@ try {
     exit;
 }
 
-if (!preg_match("/^[0-9]{12}$/", $phone)) {
+if (!preg_match("/^[0-9]{11}$/", $phone)) {
     echo json_encode(["status" => "error", "message" => "Invalid phone number"]);
     exit();
 }
