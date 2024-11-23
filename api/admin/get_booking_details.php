@@ -8,7 +8,6 @@ include '../../db.php';
 
 $bookingID = $_GET['bookingId'];
 
-// Fetch booking details including RoomBookingID and TransportationBookingID
 $bookingQuery = "
     SELECT 
         b.BookingID AS BookingID,
@@ -17,16 +16,17 @@ $bookingQuery = "
         b.ProofOfPayment AS ProofOfPayment,
         b.PayoutStatus AS PayoutStatus,
         b.BookingStatus AS BookingStatus,
-        b.paymentTransactionID as paymentGCashTransactionID,
+        b.paymentTransactionID AS paymentGCashTransactionID,
         b.Subtotal AS Subtotal,
         b.VAT AS VAT,
+        b.bookingType AS BookingType,
         b.PayoutAmount AS PayoutAmount,
         b.MerchantID AS MerchantID,
         b.TravelerID AS TravelerID,
         b.RefundReason AS RefundReason,
         b.RefundStatus AS RefundStatus,
         b.RoomBookingID AS RoomBookingID,
-        b.TransportationBookingID AS TransportationBookingID, -- Select these fields
+        b.TransportationBookingID AS TransportationBookingID,
         t.Mobile AS travelerMobile,
         t.FirstName AS TravelerFirstName,
         t.LastName AS TravelerLastName,
@@ -47,19 +47,17 @@ $result = $stmt->get_result();
 $bookingDetails = $result->fetch_assoc();
 
 $bookingDetails['ProofOfPayment'] = base64_encode($bookingDetails['ProofOfPayment']);
-
-// Initialize inclusion and view details to null
 $inclusions = [];
 $viewDetails = null;
+$imageFiles = [];
 
 if (!is_null($bookingDetails['RoomBookingID'])) {
-    // Fetch room booking details
     $roomBookingQuery = "
         SELECT 
             rb.CheckInDate AS CheckIn,
             rb.CheckOutDate AS CheckOut,
             r.RoomName AS RoomName,
-            r.RoomID AS RoomID, -- Include RoomID for later use
+            r.RoomID AS RoomID,
             r.MerchantID AS MerchantID
         FROM room_booking rb
         JOIN rooms r ON rb.RoomID = r.RoomID
@@ -70,7 +68,6 @@ if (!is_null($bookingDetails['RoomBookingID'])) {
     $roomResult = $roomStmt->get_result();
     $listingDetails = $roomResult->fetch_assoc();
 
-    // Fetch room inclusions
     $inclusionQuery = "
         SELECT i.InclusionName AS InclusionName
         FROM room_inclusions ri
@@ -84,7 +81,6 @@ if (!is_null($bookingDetails['RoomBookingID'])) {
         $inclusions[] = $inclusion['InclusionName'];
     }
 
-    // Fetch room view details
     $viewQuery = "
         SELECT v.ViewName AS ViewName
         FROM room_view rv
@@ -98,16 +94,27 @@ if (!is_null($bookingDetails['RoomBookingID'])) {
     while ($view = $viewResult->fetch_assoc()) {
         $viewDetails[] = $view['ViewName'];
     }
-    
+
+    $roomImageQuery = "
+        SELECT ImageFile
+        FROM room_gallery
+        WHERE RoomID = ?";
+    $roomImageStmt = $conn->prepare($roomImageQuery);
+    $roomImageStmt->bind_param("i", $listingDetails['RoomID']);
+    $roomImageStmt->execute();
+    $roomImageResult = $roomImageStmt->get_result();
+    while ($image = $roomImageResult->fetch_assoc()) {
+        $imageFiles[] = base64_encode($image['ImageFile']);
+    }
 } else if (!is_null($bookingDetails['TransportationBookingID'])) {
-    // Fetch transportation booking details
     $transportBookingQuery = "
         SELECT 
             tb.PickupDateTime AS PickupDateTime,
             tb.DropoffDateTime AS DropoffDateTime,
             tb.PickupLocation AS PickupLocation,
             tb.DropoffLocation AS DropoffLocation,
-            t.VehicleName AS VehicleName
+            t.VehicleName AS VehicleName,
+            t.TransportationID AS TransportationID
         FROM transportation_booking tb
         JOIN transportations t ON tb.TransportationID = t.TransportationID
         WHERE tb.TransportationBookingID = ?";
@@ -117,16 +124,25 @@ if (!is_null($bookingDetails['RoomBookingID'])) {
     $transportResult = $transportStmt->get_result();
     $listingDetails = $transportResult->fetch_assoc();
 
-    // No inclusions or views for transportation bookings
-    $inclusions = [];
-    $viewDetails = null;
+    $transportImageQuery = "
+        SELECT ImageFile
+        FROM transportation_gallery
+        WHERE TransportationID = ?";
+    $transportImageStmt = $conn->prepare($transportImageQuery);
+    $transportImageStmt->bind_param("i", $listingDetails['TransportationID']);
+    $transportImageStmt->execute();
+    $transportImageResult = $transportImageStmt->get_result();
+    while ($image = $transportImageResult->fetch_assoc()) {
+        $imageFiles[] = base64_encode($image['ImageFile']);
+    }
 }
 
 $response = [
     "bookingDetails" => $bookingDetails,
     "listingDetails" => $listingDetails,
     "inclusions" => $inclusions,
-    "viewDetails" => $viewDetails
+    "viewDetails" => $viewDetails,
+    "imageFiles" => $imageFiles
 ];
 
 echo json_encode($response);
