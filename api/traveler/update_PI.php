@@ -14,14 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$data = json_decode(file_get_contents("php://input"));
-$token = $data->token;
-$firstName = $data->FirstName;
-$lastName = $data->LastName;
-$address = $data->Address;
+$key = "123456";
 
-$key = "123456"; 
 try {
+    $token = $_POST['token'];
     $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
     $travelerID = $decoded->TravelerID;
 } catch (ExpiredException $e) {
@@ -32,9 +28,24 @@ try {
     exit;
 }
 
-$sql = "UPDATE traveler SET FirstName=?, LastName=?,  Address = ? WHERE TravelerID = ?";
+$firstName = $_POST['FirstName'];
+$lastName = $_POST['LastName'];
+$address = $_POST['Address'];
+$bio = $_POST['Bio'];
+$profilePic = null;
+
+// Handle file upload for BLOB storage
+if (isset($_FILES['profilePic']) && $_FILES['profilePic']['error'] == UPLOAD_ERR_OK) {
+    $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']);
+} else {
+    echo json_encode(['error' => 'Profile picture upload failed or no file uploaded.']);
+    exit;
+}
+
+// Prepare and execute SQL statement
+$sql = "UPDATE traveler SET FirstName=?, LastName=?, Address=?, Bio=?, ProfilePic=? WHERE TravelerID = ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("sssi", $firstName, $lastName, $address, $travelerID);
+$stmt->bind_param("sssssi", $firstName, $lastName, $address, $bio, $profilePic, $travelerID);
 
 if ($stmt->execute()) {
     echo json_encode(["success" => true, "message" => "Profile updated successfully"]);

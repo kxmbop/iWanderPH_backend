@@ -8,13 +8,6 @@ include '../../../db.php';
 
 $query = "
     SELECT 
-        merchant.merchantId AS id,
-        merchant.merchantuuid AS uuid, 
-        merchant.BusinessName AS username, 
-        merchant.BusinessType AS fullname
-    FROM merchant 
-    UNION 
-    SELECT 
         traveler.travelerId as id,
         traveler.traveleruuId AS uuid, 
         traveler.username, 

@@ -17,7 +17,7 @@ error_log("Transportation ID received: " . $transportationId);
 try {
     // SQL query to fetch transportation details
     $query = "
-        SELECT t.VehicleName, t.Model, t.Brand, t.Capacity, t.RentalPrice, t.DriverName, t.DriverContactNo, tg.ImageFile
+        SELECT t.VehicleName, t.Model, t.Brand, t.Capacity, t.RentalPrice, tg.ImageFile
         FROM transportations t
         LEFT JOIN transportation_gallery tg ON t.TransportationID = tg.TransportationID
         WHERE t.TransportationID = ?
@@ -34,12 +34,10 @@ try {
         exit;
     }
 
-    // Encode image as Base64 if it exists
     if (!empty($transportationDetails['ImageFile'])) {
-        $transportationDetails['ImageFile'] = 'data:image/jpeg;base64,' . base64_encode($transportationDetails['ImageFile']);
+        $transportationDetails['ImageFile'] = base64_encode($transportationDetails['ImageFile']);
     }
 
-    // Output the JSON result
     echo json_encode($transportationDetails);
 
 } catch (Exception $e) {

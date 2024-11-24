@@ -34,7 +34,7 @@ if (!empty($token)) {
         // Fetch traveler profile information
 
         $profile_sql = "
-        SELECT t.TravelerID, t.FirstName, t.LastName, t.Username, t.ProfilePic, t.Bio, t.isMerchant, m.isApproved 
+        SELECT t.TravelerID, t.FirstName, t.LastName, t.Username, t.ProfilePic,  t.Address, t.Email, t.Mobile, t.Bio, t.isMerchant, m.isApproved 
         FROM traveler t 
         LEFT JOIN merchant m ON t.TravelerID = m.travelerID 
         WHERE t.TravelerID = ?

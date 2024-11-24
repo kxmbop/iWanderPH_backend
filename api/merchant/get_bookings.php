@@ -46,7 +46,7 @@ if (!$merchantRow) {
 
 $merchantID = $merchantRow['MerchantID'];
 
-// SQL Query to fetch all relevant booking information
+// SQL Query to fetch all relevant booking, review, and review image information
 $sql = "
 SELECT 
     b.bookingID,
@@ -107,7 +107,17 @@ SELECT
     t.LastName AS TravelerLastName,
     
     -- Merchant info
-    m.BusinessName AS MerchantBusinessName
+    m.BusinessName AS MerchantBusinessName,
+    
+    -- Reviews
+    rev.reviewID,
+    rev.reviewComment,
+    rev.reviewRating,
+    rev.privacy AS reviewPrivacy,
+    rev.createdAt AS reviewCreatedAt,
+    
+    -- Review Images (Will convert to base64 in PHP)
+    GROUP_CONCAT(DISTINCT ri_rev.image SEPARATOR ', ') AS reviewImages
 FROM booking b
 LEFT JOIN room_booking rb ON b.roomBookingID = rb.RoomBookingID
 LEFT JOIN rooms r ON rb.RoomID = r.RoomID
@@ -121,27 +131,47 @@ LEFT JOIN transportations tr ON tb.TransportationID = tr.TransportationID
 
 JOIN traveler t ON b.TravelerID = t.TravelerID
 JOIN merchant m ON b.MerchantID = m.MerchantID
+
+LEFT JOIN reviews rev ON b.bookingID = rev.bookingID
+LEFT JOIN review_images ri_rev ON rev.reviewID = ri_rev.reviewID
+
 WHERE b.MerchantID = ? 
 AND b.bookingStatus = ?
-GROUP BY b.bookingID
+GROUP BY b.bookingID, rev.reviewID
 ";
 
 $stmt = $conn->prepare($sql);
-if ($stmt === false) {
-    echo json_encode(['error' => 'SQL preparation failed: ' . $conn->error]);
-    exit;
-}
-
 $stmt->bind_param("is", $merchantID, $status);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result === false) {
-    echo json_encode(['error' => 'Query execution failed: ' . $stmt->error]);
-    exit;
-}
+$bookings = [];
 
-$bookings = $result->fetch_all(MYSQLI_ASSOC);
+while ($row = $result->fetch_assoc()) {
+    $booking = $row;
+    $bookingID = $row['bookingID'];
+
+    // Fetch images for each review
+    $reviewID = $row['reviewID'];
+    if ($reviewID) {
+        $imageSql = "SELECT Image FROM review_images WHERE reviewID = ?";
+        $imageStmt = $conn->prepare($imageSql);
+        $imageStmt->bind_param("i", $reviewID);
+        $imageStmt->execute();
+        $imageResult = $imageStmt->get_result();
+
+        $reviewImages = [];
+        while ($imageRow = $imageResult->fetch_assoc()) {
+            $base64Image = base64_encode($imageRow['Image']);
+            $reviewImages[] = $base64Image;
+        }
+        $booking['reviewImages'] = $reviewImages;
+    } else {
+        $booking['reviewImages'] = [];
+    }
+
+    $bookings[] = $booking;
+}
 
 if (empty($bookings)) {
     echo json_encode(['message' => 'No bookings found with the given status']);

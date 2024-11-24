@@ -20,7 +20,6 @@ if ($conn->connect_error) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Initialize variables and ensure they are set
     $gcashNumber = isset($_POST['gcashNumber']) ? $_POST['gcashNumber'] : null;
     $firstName = isset($_POST['firstName']) ? $_POST['firstName'] : null;
     $lastName = isset($_POST['lastName']) ? $_POST['lastName'] : null;
@@ -31,47 +30,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = isset($_POST['password']) ? $_POST['password'] : null;
     $confirmPassword = isset($_POST['confirmPassword']) ? $_POST['confirmPassword'] : null;
 
-    // Handle profile picture upload (Step 3)
     $profilePic = null;
     if (isset($_FILES['profilePic']) && $_FILES['profilePic']['error'] == UPLOAD_ERR_OK) {
-        $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']); // Convert image to binary data
+        $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']); 
     } else {
         echo json_encode(['error' => 'Profile picture upload failed or no file uploaded.']);
         exit;
     }
 
-    // Step 4: Check if passwords match and are not empty
     if (!$password || !$confirmPassword || $password !== $confirmPassword) {
         echo json_encode(['error' => 'Passwords do not match or are empty.']);
         exit;
     }
 
-    // Step 5: Encrypt the TravelerUUID
-    $encryptionKey = '123456'; // Make sure to replace this with your actual key
-    $travelerUUID = encrypt(uniqid(), $encryptionKey); // Generate a unique TravelerUUID and encrypt it
+    $encryptionKey = '123456'; 
+    $travelerUUID = encrypt(uniqid(), $encryptionKey);
 
-    // Correct SQL Query: Added TravelerUUID and ensured the correct number of placeholders
     $sql = "INSERT INTO traveler (TravelerUUID, Mobile, FirstName, LastName, Address, ProfilePic, Bio, Email, Username, Password, isMerchant, isDeactivated, isSuspended, isBanned)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)";
 
     if ($stmt = $conn->prepare($sql)) {
-        // Corrected binding parameters to match SQL query placeholders
         $stmt->bind_param("ssssssssss", $travelerUUID, $gcashNumber, $firstName, $lastName, $address, $profilePic, $bio, $email, $username, $password);
 
-        // Execute the query
         if ($stmt->execute()) {
             echo json_encode(['success' => 'Signup successful.']);
         } else {
             echo json_encode(['error' => 'Error: Could not execute the query.']);
-            error_log("Database error: " . $conn->error); // Log database error
+            error_log("Database error: " . $conn->error); 
         }
         $stmt->close();
     } else {
         echo json_encode(['error' => 'Error: Could not prepare the query.']);
-        error_log("Prepare statement error: " . $conn->error); // Log statement preparation error
+        error_log("Prepare statement error: " . $conn->error); 
     }
 
-    // Close the connection
     $conn->close();
 } else {
     echo json_encode(['error' => 'Invalid request method.']);
