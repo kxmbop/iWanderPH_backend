@@ -30,7 +30,7 @@ if (!empty($token)) {
         }
         // Fetch completed bookings with associated merchant information
         $completedBookingsQuery = "
-            SELECT m.businessName, m.email, m.contact, m.address, m.profilePicture
+            SELECT m.businessName, m.email, m.contact, m.address, m.profilePicture,m.merchantID
             FROM booking b
             JOIN merchant m ON b.merchantID = m.merchantID
             WHERE b.travelerID = ? AND b.bookingStatus = 'Completed'
