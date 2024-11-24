@@ -23,7 +23,7 @@ $receiverParts = explode(' - ', $receiver );
 $receiverId = $receiverParts[0];
 $receiverRole = $receiverParts[2];
 
-$get_senderUUIDquery = "SELECT travelerUUID FROM traveler WHERE travelerId = ? LIMIT 1"; // Limit to 1 result
+$get_senderUUIDquery = "SELECT travelerUUID FROM traveler WHERE travelerId = ? LIMIT 1"; 
 $get_senderUUIDstmt = $conn->prepare($get_senderUUIDquery);
 $get_senderUUIDstmt->bind_param("i", $sender);
 $get_senderUUIDstmt->execute();

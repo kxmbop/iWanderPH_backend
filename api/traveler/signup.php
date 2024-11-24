@@ -46,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $encryptionKey = '123456'; 
     $travelerUUID = encrypt(uniqid(), $encryptionKey);
 
+    // $role_type = 'traveler';
+    // $encryptionKey = '123456'; 
+    // $text_to_encrypt = $traveler_id . " - " . $username . " - " . $role_type; 
+    // $travelerUUID = encrypt($text_to_encrypt, $encryptionKey);
+
     $sql = "INSERT INTO traveler (TravelerUUID, Mobile, FirstName, LastName, Address, ProfilePic, Bio, Email, Username, Password, isMerchant, isDeactivated, isSuspended, isBanned)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)";
 

@@ -12,7 +12,7 @@ $data = json_decode(file_get_contents("php://input"));
 if (isset($data->chatSessionId) && isset($data->message)) {
     $chatSessionId = $data->chatSessionId;
     $message = $data->message;
-    $senderId = $data->senderId; 
+    $senderId = $data->senderId;
 
     if (empty($senderId)) {
         echo json_encode(['success' => false, 'error' => 'Sender ID is missing']);
