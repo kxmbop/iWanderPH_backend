@@ -33,19 +33,24 @@ if ($result_merchant && $result_merchant->num_rows > 0) {
     $response['merchant'] = null; 
 }
 
-$sql_rooms = "SELECT 
-    r.RoomID, 
-    r.RoomName, 
-    r.RoomRate, 
-    r.RoomQuantity,
-    r.GuestPerRoom,
-    (SELECT COUNT(*) 
-     FROM booking b 
-     WHERE b.roomBookingID = r.RoomID 
-       AND b.bookingStatus NOT IN ('Completed', 'Cancelled', 'Refunded')) AS ActiveBookings
-FROM rooms r
-WHERE r.MerchantID = $merchantId;
+$sql_rooms = "
+    SELECT 
+        r.RoomID, 
+        r.RoomName, 
+        r.RoomRate, 
+        r.RoomQuantity - 
+        IFNULL((SELECT COUNT(*) 
+                FROM room_booking rb
+                JOIN booking b 
+                  ON rb.RoomBookingID = b.roomBookingID
+                WHERE rb.RoomID = r.RoomID 
+                  AND b.bookingStatus NOT IN ('Completed', 'Cancelled', 'Refunded')), 0) AS AvailableQuantity,
+        r.RoomQuantity,
+        r.GuestPerRoom
+    FROM rooms r
+    WHERE r.MerchantID = $merchantId;
 ";
+
 $result_rooms = $conn->query($sql_rooms);
 
 $rooms = array();
@@ -53,6 +58,7 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
     while ($room = $result_rooms->fetch_assoc()) {
         $roomId = $room['RoomID'];
 
+        // Fetch gallery images
         $sql_gallery = "SELECT ImageFile FROM room_gallery WHERE RoomID = $roomId";
         $result_gallery = $conn->query($sql_gallery);
         $gallery = array();
@@ -63,6 +69,7 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
         }
         $room['gallery'] = $gallery;
 
+        // Fetch inclusions
         $sql_inclusions = "SELECT InclusionName FROM inclusions 
                            INNER JOIN room_inclusions ON inclusions.InclusionID = room_inclusions.InclusionID 
                            WHERE room_inclusions.RoomID = $roomId";
@@ -75,6 +82,7 @@ if ($result_rooms && $result_rooms->num_rows > 0) {
         }
         $room['inclusions'] = $inclusions;
 
+        // Fetch views
         $sql_views = "SELECT ViewName FROM views 
                       INNER JOIN room_view ON views.ViewID = room_view.ViewID 
                       WHERE room_view.RoomID = $roomId";
