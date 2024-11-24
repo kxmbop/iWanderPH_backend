@@ -6,12 +6,10 @@ header("Content-Type: application/json");
 
 include '../../db.php';
 
-$reportID = isset($_GET['reportID']) ? (int)$_GET['reportID'] : 0; // Optional filter by reportID
+$reportID = isset($_GET['reportID']) ? (int)$_GET['reportID'] : 0;
 
-// Debugging the reportID
 error_log("reportID: " . $reportID);
 
-// Query to fetch reports along with associated review, review images, and violation details
 $reportQuery = "
     SELECT 
         r.reportID AS reportID,
@@ -23,6 +21,7 @@ $reportQuery = "
         r.status AS status,
         rev.bookingID AS bookingID,
         rev.travelerID AS travelerID,
+        t.email AS travelerEmail, -- Fetching email from traveler table
         rev.reviewComment AS reviewComment,
         rev.reviewRating AS reviewRating,
         rev.privacy AS privacy,
@@ -33,6 +32,7 @@ $reportQuery = "
         v.violationDescription AS violationDescription
     FROM reports r
     LEFT JOIN reviews rev ON r.reviewID = rev.reviewID
+    LEFT JOIN traveler t ON rev.travelerID = t.travelerID -- Join traveler table
     LEFT JOIN review_images ri ON rev.reviewID = ri.reviewID
     LEFT JOIN violations v ON r.violation = v.violationID
     WHERE (? = 0 OR r.reportID = ?)";
@@ -64,6 +64,7 @@ while ($row = $result->fetch_assoc()) {
             "reviewDetails" => [
                 "bookingID" => $row['bookingID'],
                 "travelerID" => $row['travelerID'],
+                "travelerEmail" => $row['travelerEmail'], // Include email in the response
                 "reviewComment" => $row['reviewComment'],
                 "reviewRating" => $row['reviewRating'],
                 "privacy" => $row['privacy'],
@@ -83,13 +84,29 @@ while ($row = $result->fetch_assoc()) {
     }
 }
 
+
+// Fetch all violations for dropdown
+$violationsQuery = "SELECT violationID, violationTitle, violationDescription FROM violations";
+$violationsResult = $conn->query($violationsQuery);
+
+$violations = [];
+while ($violation = $violationsResult->fetch_assoc()) {
+    $violations[] = [
+        "violationID" => $violation['violationID'],
+        "violationTitle" => $violation['violationTitle'],
+        "violationDescription" => $violation['violationDescription']
+    ];
+}
+
 if (empty($reports)) {
     echo json_encode(["error" => "No reports found"]);
     exit;
 }
 
+// Respond with both reports and violations
 $response = [
-    "reports" => array_values($reports) // Reset indices to ensure JSON array structure
+    "reports" => array_values($reports),
+    "violations" => $violations // Include violations for the dropdown
 ];
 
 echo json_encode($response);
