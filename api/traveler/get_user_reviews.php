@@ -16,15 +16,17 @@ if (isset($_GET['travelerID'])) {
     // Query to fetch reviews and relevant data
     $reviewsQuery = "
         SELECT r.ReviewID, r.ReviewComment, r.ReviewRating, r.CreatedAt, 
-               (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes,
-               (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments,
-               m.BusinessName, m.Address
+            r.Privacy,
+            (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes,
+            (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments,
+            m.BusinessName, m.Address
         FROM reviews r
         JOIN booking b ON r.BookingID = b.BookingID
         JOIN merchant m ON b.MerchantID = m.MerchantID
-        WHERE b.TravelerID = ?
+        WHERE b.TravelerID = ? AND r.Privacy != 'private'
         ORDER BY r.CreatedAt DESC
     ";
+
     
     $stmt = $conn->prepare($reviewsQuery);
     $stmt->bind_param("i", $travelerID);
