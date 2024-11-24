@@ -30,57 +30,35 @@ if (!empty($token)) {
         $privacy = $_POST['privacy'];
         $images = $_FILES['reviewImages'] ?? [];
 
-        // Check if a review already exists for the given booking and traveler
-        $check_review_sql = "SELECT * FROM reviews WHERE bookingID = ? AND TravelerID = ?";
-        $check_stmt = $conn->prepare($check_review_sql);
-        $check_stmt->bind_param("ii", $bookingID, $travelerID);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
+        // Insert review into the 'reviews' table
+        $review_sql = "INSERT INTO reviews (bookingID, TravelerID, reviewComment, reviewRating, privacy, createdAt) 
+                       VALUES (?, ?, ?, ?, ?, NOW())";
+        $stmt = $conn->prepare($review_sql);
+        $stmt->bind_param("iisis", $bookingID, $travelerID, $reviewComment, $reviewRating, $privacy);
 
-        if ($check_result->num_rows > 0) {
-            $response["success"] = false;
-            $response["message"] = "A review already exists for this booking.";
-        } else {
-            // Insert review into the 'reviews' table
-            $review_sql = "INSERT INTO reviews (bookingID, TravelerID, reviewComment, reviewRating, privacy, createdAt) 
-                           VALUES (?, ?, ?, ?, ?, NOW())";
-            $stmt = $conn->prepare($review_sql);
-            $stmt->bind_param("iisis", $bookingID, $travelerID, $reviewComment, $reviewRating, $privacy);
+        if ($stmt->execute()) {
+            $reviewID = $stmt->insert_id; // Get the inserted reviewID
 
-            if ($stmt->execute()) {
-                $reviewID = $stmt->insert_id; // Get the inserted reviewID
-
-                // Handle image uploads if any
-                if (!empty($images['name'][0])) {
-                    foreach ($images['tmp_name'] as $key => $tmp_name) {
-                        $imageData = file_get_contents($tmp_name);
-                        $image_sql = "INSERT INTO review_images (reviewID, image) VALUES (?, ?)";
-                        $image_stmt = $conn->prepare($image_sql);
-                        $image_stmt->bind_param("ib", $reviewID, $imageData);
-                        $image_stmt->send_long_data(1, $imageData); // Send long binary data
-                        $image_stmt->execute();
-                    }
+            // Handle image uploads if any
+            if (!empty($images['name'][0])) {
+                foreach ($images['tmp_name'] as $key => $tmp_name) {
+                    $imageData = file_get_contents($tmp_name);
+                    $image_sql = "INSERT INTO review_images (reviewID, image) VALUES (?, ?)";
+                    $image_stmt = $conn->prepare($image_sql);
+                    $image_stmt->bind_param("ib", $reviewID, $imageData);
+                    $image_stmt->send_long_data(1, $imageData); // Send long binary data
+                    $image_stmt->execute();
                 }
-
-                // Update the booking status to 'Completed'
-                $update_booking_sql = "UPDATE booking SET bookingStatus = 'Completed' WHERE bookingID = ?";
-                $update_stmt = $conn->prepare($update_booking_sql);
-                $update_stmt->bind_param("i", $bookingID);
-
-                if ($update_stmt->execute()) {
-                    $response["success"] = true;
-                    $response["message"] = "Review submitted successfully, and booking status updated to 'Completed'.";
-                } else {
-                    $response["success"] = false;
-                    $response["message"] = "Review submitted, but failed to update booking status.";
-                }
-            } else {
-                $response["success"] = false;
-                $response["message"] = "Failed to submit review.";
             }
 
-            $stmt->close();
+            $response["success"] = true;
+            $response["message"] = "Review submitted successfully.";
+        } else {
+            $response["success"] = false;
+            $response["message"] = "Failed to submit review.";
         }
+
+        $stmt->close();
     } catch (ExpiredException $e) {
         $response["success"] = false;
         $response["message"] = "Token expired: " . $e->getMessage();
@@ -97,4 +75,3 @@ $conn->close();
 
 header('Content-Type: application/json');
 echo json_encode($response);
-?>

@@ -38,10 +38,9 @@ if (!empty($token)) {
 }
 
 try {
-    // Fetch all reviews with privacy = 'public' and check if the user has liked each review
     $reviewQuery = "
         SELECT r.ReviewID, r.ReviewComment, r.ReviewRating, b.BookingID, t.TravelerID, t.FirstName, t.username, t.LastName, t.ProfilePic,
-            bs.BusinessName, bs.address,  
+            bs.BusinessName, bs.address, bs.merchantID,  
             (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID) AS likes,
             (SELECT COUNT(*) FROM review_comments WHERE ReviewID = r.ReviewID) AS comments,
             (SELECT COUNT(*) FROM review_likes WHERE ReviewID = r.ReviewID AND userID = ?) AS likedByUser
@@ -82,6 +81,7 @@ try {
                 'profilePic' => $reviewRow['ProfilePic'] ? base64_encode($reviewRow['ProfilePic']) : null
             ],
             'business' => [
+                'businessID' => $reviewRow['merchantID'],
                 'name' => $reviewRow['BusinessName'],
                 'address' => $reviewRow['address']
             ],
