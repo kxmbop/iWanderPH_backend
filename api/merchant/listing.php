@@ -38,6 +38,7 @@ try {
             $merchant = $merchantResult->fetch_assoc();
             $merchantID = $merchant['MerchantID'];
 
+
             // GET: Fetch rooms
             if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 $selectQuery = "SELECT RoomID, RoomName, RoomQuantity, GuestPerRoom, RoomRate FROM rooms WHERE MerchantID = ?";
@@ -48,9 +49,63 @@ try {
 
                 $rooms = [];
                 while ($row = $result->fetch_assoc()) {
+                    $roomID = $row['RoomID'];
+
+                    // Fetch inclusions
+                    $inclusionsQuery = "SELECT i.InclusionName, i.InclusionDescription
+                                        FROM room_inclusions ri
+                                        INNER JOIN inclusions i ON ri.InclusionID = i.InclusionID
+                                        WHERE ri.RoomID = ?";
+                    $inclusionsStmt = $conn->prepare($inclusionsQuery);
+                    $inclusionsStmt->bind_param("i", $roomID);
+                    $inclusionsStmt->execute();
+                    $inclusionsResult = $inclusionsStmt->get_result();
+                    $inclusions = [];
+                    while ($inclusion = $inclusionsResult->fetch_assoc()) {
+                        $inclusions[] = $inclusion;
+                    }
+
+                    // Fetch views
+                    $viewsQuery = "SELECT v.ViewName
+                                   FROM room_view rv
+                                   INNER JOIN views v ON rv.ViewID = v.ViewID
+                                   WHERE rv.RoomID = ?";
+                    $viewsStmt = $conn->prepare($viewsQuery);
+                    $viewsStmt->bind_param("i", $roomID);
+                    $viewsStmt->execute();
+                    $viewsResult = $viewsStmt->get_result();
+                    $views = [];
+                    while ($view = $viewsResult->fetch_assoc()) {
+                        $views[] = $view['ViewName'];
+                    }
+
+                    // Fetch gallery
+                    $galleryQuery = "SELECT ImageFile
+                                     FROM room_gallery
+                                     WHERE RoomID = ?";
+                    $galleryStmt = $conn->prepare($galleryQuery);
+                    $galleryStmt->bind_param("i", $roomID);
+                    $galleryStmt->execute();
+                    $galleryResult = $galleryStmt->get_result();
+                    $gallery = [];
+                    while ($image = $galleryResult->fetch_assoc()) {
+                        $imageData = $image['ImageFile'];
+                        $base64Image = base64_encode($imageData);
+                        $gallery[] = 'data:image/jpeg;base64,' . $base64Image;
+                    }
+
+                    $row['Inclusions'] = $inclusions;
+                    $row['Views'] = $views;
+                    $row['Gallery'] = $gallery;
+
                     $rooms[] = $row;
                 }
-                echo json_encode(['success' => true, 'data' => $rooms]);
+
+                if (!empty($rooms)) {
+                    echo json_encode(['success' => true, 'data' => $rooms]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'No rooms found']);
+                }
                 $selectStmt->close();
             }
 
@@ -155,6 +210,7 @@ try {
         }
         $merchantStmt->close();
     }
+    
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Invalid token']);
 }
