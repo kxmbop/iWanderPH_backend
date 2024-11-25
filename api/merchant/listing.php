@@ -52,7 +52,7 @@ try {
                     $roomID = $row['RoomID'];
 
                     // Fetch inclusions
-                    $inclusionsQuery = "SELECT i.InclusionName, i.InclusionDescription
+                    $inclusionsQuery = "SELECT i.InclusionName, i.InclusionDescription, i.InclusionID
                                         FROM room_inclusions ri
                                         INNER JOIN inclusions i ON ri.InclusionID = i.InclusionID
                                         WHERE ri.RoomID = ?";
@@ -66,7 +66,7 @@ try {
                     }
 
                     // Fetch views
-                    $viewsQuery = "SELECT v.ViewName
+                    $viewsQuery = "SELECT v.ViewName, v.ViewID
                                    FROM room_view rv
                                    INNER JOIN views v ON rv.ViewID = v.ViewID
                                    WHERE rv.RoomID = ?";
@@ -76,7 +76,7 @@ try {
                     $viewsResult = $viewsStmt->get_result();
                     $views = [];
                     while ($view = $viewsResult->fetch_assoc()) {
-                        $views[] = $view['ViewName'];
+                        $views[] = $view;
                     }
 
                     // Fetch gallery
@@ -91,7 +91,7 @@ try {
                     while ($image = $galleryResult->fetch_assoc()) {
                         $imageData = $image['ImageFile'];
                         $base64Image = base64_encode($imageData);
-                        $gallery[] = 'data:image/jpeg;base64,' . $base64Image;
+                        $gallery[] = $base64Image;
                     }
 
                     $row['Inclusions'] = $inclusions;

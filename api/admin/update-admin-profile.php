@@ -1,83 +1,57 @@
 <?php
-
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-include '../../db.php'; // Make sure this file has the correct path
+require '../../vendor/autoload.php';
+use Firebase\JWT\JWT;
+use Firebase\JWT\ExpiredException;
+include '../../db.php';
+include 'encryption.php'; 
 
-// Check if data is posted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$input = json_decode(file_get_contents('php://input'), true);
 
-    // Ensure the required fields are set
-    if (isset($_POST['firstName']) && isset($_POST['lastName']) && isset($_POST['adminUserType']) && isset($_POST['taxID']) && isset($_POST['adminID'])) {
+$headers = apache_request_headers();
+$token = isset($headers['Authorization']) ? str_replace('Bearer ', '', $headers['Authorization']) : null;
 
-        // Process the profile picture if it exists, or skip if it's empty
-        if (isset($_FILES['profilePicture']) && $_FILES['profilePicture']['error'] === 0) {
-            $profilePicture = $_FILES['profilePicture'];
-            $profilePictureName = $profilePicture['name'];
-            $profilePictureTmpName = $profilePicture['tmp_name'];
-            $profilePictureError = $profilePicture['error'];
-
-            // Check for errors with the uploaded file
-            if ($profilePictureError === 0) {
-                // Process the profile picture as usual
-                $profilePictureNewName = uniqid('', true) . '.' . pathinfo($profilePictureName, PATHINFO_EXTENSION);
-                $profilePictureDestination = '../../uploads/profile_pictures/' . $profilePictureNewName;
-
-                if (move_uploaded_file($profilePictureTmpName, $profilePictureDestination)) {
-                    // File upload successful
-                    // No need to do anything else, as $profilePictureNewName is already set
-                } else {
-                    // Handle upload error
-                    $profilePictureNewName = null; // No new picture uploaded
-                }
-            } else {
-                // No file uploaded or error occurred
-                $profilePictureNewName = null;
-            }
-        } else {
-            // No profile picture provided, leave it as null
-            $profilePictureNewName = null;
-        }
-
-        // Prepare the SQL query based on whether profile picture is provided
-        if ($profilePictureNewName) {
-            $sql = "UPDATE admin SET firstName = ?, lastName = ?, adminUserType = ?, taxID = ?, profilePicture = ? WHERE adminID = ?";
-        } else {
-            $sql = "UPDATE admin SET firstName = ?, lastName = ?, adminUserType = ?, taxID = ? WHERE adminID = ?";
-        }
-
-        // Prepare the statement
-        $stmt = $conn->prepare($sql);
-
-        // Check if the statement was prepared successfully
-        if ($stmt === false) {
-            echo json_encode(["error" => "Failed to prepare SQL query"]);
-            exit;
-        }
-
-        // Bind parameters based on the SQL query
-        if ($profilePictureNewName) {
-            $stmt->bind_param("sssssi", $firstName, $lastName, $adminUserType, $taxID, $profilePictureNewName, $adminID);
-        } else {
-            $stmt->bind_param("ssssi", $firstName, $lastName, $adminUserType, $taxID, $adminID);
-        }
-
-        // Execute SQL query and check for success
-        if ($stmt->execute()) {
-            echo json_encode(["success" => true, "message" => "Profile updated successfully"]);
-        } else {
-            echo json_encode(["error" => "Failed to execute SQL query"]);
-        }
-
-        $stmt->close();
-    } else {
-        echo json_encode(["error" => "Missing required fields"]);
-    }
-
+if (!$token) {
+    echo json_encode(['error' => 'Unauthorized']);
+    exit();
 }
 
-$conn->close();
-?>
+try {
+    $key = "123456"; 
+    $decoded = JWT::decode($token, new Firebase\JWT\Key($key, 'HS256'));
+
+    $adminID = $decoded->adminID; 
+
+    $firstName = $input['firstName'] ?? null;
+    $lastName = $input['lastName'] ?? null;
+    $phoneNumber = $input['phoneNumber'] ?? null;
+    $email = $input['email'] ?? null;
+    $address = $input['address'] ?? null;
+    $username = $input['username'] ?? null;
+    $password = $input['password'] ?? null;
+
+    if (!$adminID || !$username || !$password) {
+        echo json_encode(['error' => 'Invalid input']);
+        exit();
+    }
+
+    $roleType = "admin"; 
+    $textToEncrypt = $adminID . " - " . $username . " - " . $roleType; 
+    $adminUUID = encrypt($textToEncrypt, $key);
+
+    $stmt = $conn->prepare("UPDATE admin SET adminUUID = ?, firstName = ?, lastName = ?, phoneNumber = ?, email = ?, address = ?, username = ?, password = ? WHERE adminID = ?");
+    $stmt->bind_param("ssssssssi", $adminUUID, $firstName, $lastName, $phoneNumber, $email, $address, $username, $password, $adminID);
+
+    if ($stmt->execute()) {
+        echo json_encode(['message' => 'Profile updated successfully']);
+    } else {
+        echo json_encode(['error' => 'Failed to update profile']);
+    }
+
+} catch (Exception $e) {
+    echo json_encode(['error' => 'Invalid token or token expired']);
+}

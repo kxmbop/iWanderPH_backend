@@ -67,9 +67,9 @@ try {
 
             while ($image = $galleryResult->fetch_assoc()) {
             $imageData = $image['ImageFile'];
-            $base64Image = base64_encode($imageData);
+            $imageFile = base64_encode($imageData);
 
-            $gallery[] = 'data:image/jpeg;base64,' . $base64Image; 
+            $gallery[] = $imageFile; 
         }
 
         $row['Inclusions'] = $inclusions;

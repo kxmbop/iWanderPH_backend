@@ -13,6 +13,9 @@ include '../../db.php';
 
 $response = [];
 
+$success = null;  // Define default value for $success
+$message = null;  // Define default value for $message
+
 $headers = getallheaders();
 $authorizationHeader = $headers['Authorization'] ?? '';
 $token = str_replace('Bearer ', '', $authorizationHeader);
@@ -51,15 +54,24 @@ if ($data && isset($data['username'], $data['password'])) {
             exit();
 
         } else {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
+            $success = false;
+            $message = 'Invalid username or password';
+            echo json_encode(['status' => 'error', 'message' => $message]);
         }
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid username or password']);
+        $success = false;
+        $message = 'Invalid username or password';
+        echo json_encode(['status' => 'error', 'message' => $message]);
     }
 
 } else {
-    echo json_encode(['status' => 'error', 'message' => 'Invalid input']);
+    $success = false;
+    $message = 'Invalid input';
+    echo json_encode(['status' => 'error', 'message' => $message]);
 }
+
 $conn->close();
+
+// Ensure $success and $message are included in all responses
 echo json_encode(["success" => $success, "message" => $message]);
 ?>

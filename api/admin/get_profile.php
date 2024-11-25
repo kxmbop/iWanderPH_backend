@@ -24,9 +24,6 @@ if (!empty($token)) {
         $adminID = $decoded->adminID;
         $role = $decoded->role;
 
-        $response['adminID'] = $adminID;
-        $response['role'] = $role;
-
         if ($role !== 'admin') {
             $response['status'] = 'error';
             $response['message'] = 'Unauthorized access';
@@ -34,33 +31,45 @@ if (!empty($token)) {
             exit;
         }
 
-        $sql = "SELECT AdminID, username, email, firstName, lastName FROM admin WHERE adminID = ?";
-        $stmt = $conn->prepare($sql);       
-        $stmt->bind_param("i", $adminID);
-        $stmt->execute();
-        $stmt->store_result();
+        $sql = "SELECT AdminID, username, email, phoneNumber, address, userType, firstName, lastName, password FROM admin WHERE adminID = ?";
+        if ($stmt = $conn->prepare($sql)) {
+            $stmt->bind_param("i", $adminID);
+            $stmt->execute();
+            $stmt->store_result();
 
-        if ($stmt->num_rows === 1) {
-            $stmt->bind_result($adminID, $username, $email, $firstName, $lastName);
-            $stmt->fetch();
-   
-            $profile = [
-                'id' => $adminID,
-                'username' => $username,
-                'email' => $email,
-                'firstname' => $firstName,
-                'lastname' => $lastName
-            ];
-            
-            $response = [
-                "success" => true,
-                "message" => "Profile retrieved successfully",
-                "profile" => $profile
-            ];
+            if ($stmt->num_rows === 1) {
+                $stmt->bind_result($adminID, $username, $email, $phoneNumber, $address, $userType, $firstName, $lastName, $password);
+                $stmt->fetch();
+               
+                $profile = [
+                    'id' => $adminID,
+                    'username' => $username,
+                    'email' => $email,
+                    'phoneNumber' => $phoneNumber,
+                    'address' => $address,
+                    'userType' => $userType,
+                    'firstName' => $firstName,
+                    'lastName' => $lastName,
+                    'password' => $password,
+                ];
+                
+                $response = [
+                    "success" => true,
+                    "message" => "Profile retrieved successfully",
+                    "profile" => $profile
+                ];
+            } else {
+                $response = [
+                    'status' => 'error',
+                    'message' => 'Profile not found'
+                ];
+            }
+
+            $stmt->close();
         } else {
             $response = [
-                'status' => 'error',
-                'message' => 'Profile not found'
+                "success" => false,
+                "message" => "Database query failed"
             ];
         }
 
