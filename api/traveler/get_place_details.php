@@ -10,14 +10,17 @@ $placeId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 $response = array();
 
-// Fetch place details
-$sql = "SELECT place_name, description, region, province, full_address, island_group, main_image FROM places WHERE id = $placeId";
+$sql = "SELECT place_name, description, region, province, full_address, island_group, main_image, map_embed_link, 
+        best_time_to_visit, entrance_fee, activities, nearby_points_of_interest, how_to_get_there 
+        FROM places WHERE id = $placeId";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     $response['place'] = $result->fetch_assoc();
     $response['place']['main_image'] = base64_encode($response['place']['main_image']);
 }
+
+
 
 // Fetch additional images
 // Fetch additional images
