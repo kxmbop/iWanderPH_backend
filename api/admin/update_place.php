@@ -15,6 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $province = $_POST['province'];
     $fullAddress = $_POST['full_address'];
     $islandGroup = $_POST['island_group'];
+    $best_time_to_visit = $_POST['best_time_to_visit'];
+    $entrance_fee = $_POST['entrance_fee'];
+    $activities = $_POST['activities'];
+    $nearby_points_of_interest = $_POST['nearby_points_of_interest'];
+    $map_embed_link = $_POST['map_embed_link'];
+    $how_to_get_there = $_POST['how_to_get_there'];
 
     // Prepare the SQL query to update place information
     $sql = "UPDATE places SET 
@@ -23,10 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 region = ?, 
                 province = ?, 
                 full_address = ?, 
-                island_group = ? 
+                island_group = ?,
+                best_time_to_visit =?,
+                entrance_fee=?,
+                activities=?,
+                nearby_points_of_interest=?,
+                map_embed_link=?,
+                how_to_get_there=?
+
             WHERE id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssi", $placeName, $description, $region, $province, $fullAddress, $islandGroup, $placeId);
+    $stmt->bind_param("ssssssssssssi", $placeName, $description, $region, $province, $fullAddress, $islandGroup, $best_time_to_visit, $entrance_fee, $activities,$nearby_points_of_interest, $map_embed_link, $how_to_get_there, $placeId);
 
     if ($stmt->execute()) {
         // Handle main image file upload if present
