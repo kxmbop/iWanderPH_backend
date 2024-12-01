@@ -61,16 +61,15 @@ if (!empty($token)) {
             $dotAuth = file_get_contents($fileTmpName);
         }
 
-        // Insert merchant details into the database
+        // Insert merchant details into the database (without merchantUUID)
         $stmt = $conn->prepare("INSERT INTO merchant (
-            merchantUUID, businessName, email, contact, address, profilePicture, 
+            businessName, email, contact, address, profilePicture, 
             businessType, BusinessTin, BarangayClearance, MayorPermit, BirForm, DotAuth, travelerID, isApproved
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
 
-        $merchantUUID = encrypt(uniqid(), '123456');
         $stmt->bind_param(
-            "ssssssssssssi", 
-            $merchantUUID, $businessName, $email, $contact, $address, $profilePicture, 
+            "sssssssssssi", 
+            $businessName, $email, $contact, $address, $profilePicture, 
             $businessType, $businessTin, $barangayClearance, $mayorPermit, $birForm, $dotAuth, $travelerID
         );
 
@@ -80,6 +79,19 @@ if (!empty($token)) {
 
         $merchantID = $stmt->insert_id;
         $stmt->close();
+
+        // After merchantID is inserted, now encrypt the merchantUUID
+        $encryptionKey = '123456';
+        $text_to_encrypt = $merchantID . " - " . $travelerID . " - " . "merchant"; // Assuming 'merchant' as role type
+        $merchantUUID = encrypt($text_to_encrypt, $encryptionKey);
+
+        // Update the merchant with the generated merchantUUID
+        $updateStmt = $conn->prepare("UPDATE merchant SET merchantUUID = ? WHERE merchantID = ?");
+        $updateStmt->bind_param("si", $merchantUUID, $merchantID);
+        if (!$updateStmt->execute()) {
+            throw new Exception("Failed to update merchant UUID: " . $conn->error);
+        }
+        $updateStmt->close();
 
         // Update traveler table to mark as merchant
         $updateStmt = $conn->prepare("UPDATE traveler SET isMerchant = 1 WHERE TravelerID = ?");

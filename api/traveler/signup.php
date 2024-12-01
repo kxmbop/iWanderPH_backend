@@ -1,20 +1,18 @@
 <?php
 
 // Enable error reporting for debugging (optional, remove in production)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json");
 
-// Include database connection and encryption functions
 include '../../db.php';
 include 'encryption.php';
 
-// Check database connection
 if ($conn->connect_error) {
     die(json_encode(['error' => 'Database connection failed: ' . $conn->connect_error]));
 }
@@ -32,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $profilePic = null;
     if (isset($_FILES['profilePic']) && $_FILES['profilePic']['error'] == UPLOAD_ERR_OK) {
-        $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']); 
+        $profilePic = file_get_contents($_FILES['profilePic']['tmp_name']);
     } else {
         echo json_encode(['error' => 'Profile picture upload failed or no file uploaded.']);
         exit;
@@ -43,36 +41,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    $encryptionKey = '123456'; 
-    $travelerUUID = encrypt(uniqid(), $encryptionKey);
+    // Insert traveler data (without TravelerUUID)
+    $role_type = 'traveler';
 
-    // $role_type = 'traveler';
-    // $encryptionKey = '123456'; 
-    // $text_to_encrypt = $traveler_id . " - " . $username . " - " . $role_type; 
-    // $travelerUUID = encrypt($text_to_encrypt, $encryptionKey);
-
-    $sql = "INSERT INTO traveler (TravelerUUID, Mobile, FirstName, LastName, Address, ProfilePic, Bio, Email, Username, Password, isMerchant, isDeactivated, isSuspended, isBanned)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)";
+    $sql = "INSERT INTO traveler (Mobile, FirstName, LastName, Address, ProfilePic, Bio, Email, Username, Password, isMerchant, isDeactivated, isSuspended, isBanned)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0)";
 
     if ($stmt = $conn->prepare($sql)) {
-        $stmt->bind_param("ssssssssss", $travelerUUID, $gcashNumber, $firstName, $lastName, $address, $profilePic, $bio, $email, $username, $password);
+        $stmt->bind_param("sssssssss", $gcashNumber, $firstName, $lastName, $address, $profilePic, $bio, $email, $username, $password);
 
         if ($stmt->execute()) {
-            echo json_encode(['success' => 'Signup successful.']);
+            // Retrieve the last inserted traveler ID
+            $travelerID = $stmt->insert_id;
+
+            // Now, encrypt the TravelerUUID using the travelerID
+            $encryptionKey = '123456';
+            $text_to_encrypt = $travelerID . " - " . $username . " - " . $role_type;
+            $travelerUUID = encrypt($text_to_encrypt, $encryptionKey);
+
+            // Update TravelerUUID in the database
+            $updateSql = "UPDATE traveler SET TravelerUUID = ? WHERE travelerID = ?";
+            if ($updateStmt = $conn->prepare($updateSql)) {
+                $updateStmt->bind_param("si", $travelerUUID, $travelerID);
+                if ($updateStmt->execute()) {
+                    echo json_encode(['success' => 'Signup successful.']);
+                } else {
+                    echo json_encode(['error' => 'Error: Could not update TravelerUUID.']);
+                    error_log("Update TravelerUUID error: " . $conn->error);
+                }
+                $updateStmt->close();
+            } else {
+                echo json_encode(['error' => 'Error: Could not prepare the update query.']);
+                error_log("Prepare update query error: " . $conn->error);
+            }
         } else {
-            echo json_encode(['error' => 'Error: Could not execute the query.']);
-            error_log("Database error: " . $conn->error); 
+            echo json_encode(['error' => 'Error: Could not execute the insert query.']);
+            error_log("Insert error: " . $conn->error);
         }
         $stmt->close();
     } else {
-        echo json_encode(['error' => 'Error: Could not prepare the query.']);
-        error_log("Prepare statement error: " . $conn->error); 
+        echo json_encode(['error' => 'Error: Could not prepare the insert query.']);
+        error_log("Prepare statement error: " . $conn->error);
     }
 
     $conn->close();
 } else {
     echo json_encode(['error' => 'Invalid request method.']);
 }
-
-
 ?>
