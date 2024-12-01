@@ -7,9 +7,10 @@ header("Content-Type: application/json");
 include '../../db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    $sql = "SELECT id, place_name, description, region, province, full_address, island_group, 
-                   TO_BASE64(main_image) as main_image 
-            FROM places";
+    $sql = "SELECT id, place_name, description, region, province, full_address, island_group,
+               best_time_to_visit, entrance_fee, activities, nearby_points_of_interest, 
+               map_embed_link, how_to_get_there, TO_BASE64(main_image) as main_image 
+        FROM places";
     $result = $conn->query($sql);
 
     $places = [];

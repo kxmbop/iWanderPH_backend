@@ -13,12 +13,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $province = $_POST['province'];
     $full_address = $_POST['full_address'];
     $island_group = $_POST['island_group'];
+    $best_time_to_visit = $_POST['best_time_to_visit'];
+    $entrance_fee = $_POST['entrance_fee'];
+    $activities = $_POST['activities'];
+    $nearby_points_of_interest = $_POST['nearby_points_of_interest'];
+    $map_embed_link = $_POST['map_embed_link'];
+    $how_to_get_there = $_POST['how_to_get_there'];
     $main_image = isset($_FILES['main_image']) ? file_get_contents($_FILES['main_image']['tmp_name']) : null;
 
-    $sql = "INSERT INTO places (place_name, description, region, province, full_address, island_group, main_image)
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO places (place_name, description, region, province, full_address, island_group, main_image,best_time_to_visit,entrance_fee, activities,nearby_points_of_interest,map_embed_link, how_to_get_there)
+            VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssssss", $place_name, $description, $region, $province, $full_address, $island_group, $main_image);
+    $stmt->bind_param("sssssssssssss", $place_name, $description, $region, $province, $full_address, $island_group, $main_image,$best_time_to_visit,$entrance_fee, $activities,$nearby_points_of_interest, $map_embed_link,$how_to_get_there );
     if ($stmt->execute()) {
         $place_id = $conn->insert_id;
 

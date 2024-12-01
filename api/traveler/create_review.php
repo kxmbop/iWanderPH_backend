@@ -29,6 +29,7 @@ if (!empty($token)) {
         $privacy = $_POST['privacy'];
         $images = $_FILES['reviewImages'] ?? [];
 
+        // Check if a review already exists for the given booking and traveler
         $check_review_sql = "SELECT * FROM reviews WHERE bookingID = ? AND TravelerID = ?";
         $check_stmt = $conn->prepare($check_review_sql);
         $check_stmt->bind_param("ii", $bookingID, $travelerID);
@@ -39,21 +40,23 @@ if (!empty($token)) {
             $response["success"] = false;
             $response["message"] = "A review already exists for this booking.";
         } else {
+            // Insert review into the 'reviews' table
             $review_sql = "INSERT INTO reviews (bookingID, TravelerID, reviewComment, reviewRating, privacy, createdAt) 
                            VALUES (?, ?, ?, ?, ?, NOW())";
             $stmt = $conn->prepare($review_sql);
             $stmt->bind_param("iisis", $bookingID, $travelerID, $reviewComment, $reviewRating, $privacy);
 
             if ($stmt->execute()) {
-                $reviewID = $stmt->insert_id; 
+                $reviewID = $stmt->insert_id; // Get the inserted reviewID
 
+                // Handle image uploads if any
                 if (!empty($images['name'][0])) {
                     foreach ($images['tmp_name'] as $key => $tmp_name) {
                         $imageData = file_get_contents($tmp_name);
                         $image_sql = "INSERT INTO review_images (reviewID, image) VALUES (?, ?)";
                         $image_stmt = $conn->prepare($image_sql);
                         $image_stmt->bind_param("ib", $reviewID, $imageData);
-                        $image_stmt->send_long_data(1, $imageData); 
+                        $image_stmt->send_long_data(1, $imageData); // Send long binary data
                         $image_stmt->execute();
                     }
                 }
