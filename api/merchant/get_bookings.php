@@ -55,6 +55,7 @@ SELECT
     b.bookingStatus,
     b.paymentTransactionID,
     b.paymentStatus,
+    b.payOnSite,
     b.subtotal,
     b.VAT,
     b.payoutAmount,
@@ -66,6 +67,7 @@ SELECT
     b.refundTransactionID,
     b.roomBookingID,
     b.transportationBookingID,
+    COUNT(bul.bookingID) AS bulCount,
     
     -- Room Booking details
     rb.RoomBookingID,
@@ -119,6 +121,7 @@ SELECT
     -- Review Images (Will convert to base64 in PHP)
     GROUP_CONCAT(DISTINCT ri_rev.image SEPARATOR ', ') AS reviewImages
 FROM booking b
+LEFT JOIN booking_update_log bul ON b.bookingID = bul.bookingID
 LEFT JOIN room_booking rb ON b.roomBookingID = rb.RoomBookingID
 LEFT JOIN rooms r ON rb.RoomID = r.RoomID
 LEFT JOIN room_inclusions ri ON r.RoomID = ri.RoomID

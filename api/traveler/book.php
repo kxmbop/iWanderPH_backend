@@ -28,11 +28,17 @@ if (!empty($token)) {
         $itemId = intval($bookingData['itemId']);
         $subtotal = floatval($bookingData['subtotal']);
         $payoutAmount = floatval($bookingData['payout']);
+        $paymentMethod = $bookingData['paymentMethod'];
 
-        $paymentUpload = null;
-        if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpName = $_FILES['file']['tmp_name'];
-            $paymentUpload = file_get_contents($fileTmpName); 
+        // Determine payment method: proofOfPayment or payOnSite
+        $proofOfPayment = null;
+        $payOnSite = false;
+        
+        if ($paymentMethod === 'gcash' && isset($_FILES['proofOfPayment']) && $_FILES['proofOfPayment']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpName = $_FILES['proofOfPayment']['tmp_name'];
+            $proofOfPayment = file_get_contents($fileTmpName);
+        } elseif ($paymentMethod === 'payOnSite') {
+            $payOnSite = true;
         }
 
         $merchantID = null;
@@ -59,12 +65,11 @@ if (!empty($token)) {
         $vat = round($subtotal * 0.12, 2); 
         $totalAmount = round($subtotal + $vat, 2);
 
-        $stmt = $conn->prepare("INSERT INTO booking (TravelerID, proofOfPayment, PaymentStatus, BookingStatus, Subtotal, VAT, PayoutAmount, TotalAmount, BookingType, merchantID) VALUES (?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issdddsi", $travelerID, $paymentUpload, $subtotal, $vat, $payoutAmount, $totalAmount, $bookingType, $merchantID);
+        $stmt = $conn->prepare("INSERT INTO booking (TravelerID, proofOfPayment, payOnSite, PaymentStatus, BookingStatus, Subtotal, VAT, PayoutAmount, TotalAmount, BookingType, merchantID) VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssdddsi", $travelerID, $proofOfPayment, $payOnSite, $subtotal, $vat, $payoutAmount, $totalAmount, $bookingType, $merchantID);
         $stmt->execute();
         $bookingID = $stmt->insert_id;
         $stmt->close();
-
 
         if ($bookingType === 'room') {
             $checkIn = $bookingData['checkIn'];
@@ -99,8 +104,7 @@ if (!empty($token)) {
             $stmt->close();
         }
 
-        // Add notification for the merchant
-        $notificationMessage = "Booking request sent by traveler '$travelerUsername' for Booking ID: $bookingID. Please review the booking details and confirm or reject the request at your earliest convenience. Make sure to review the provided information thoroughly, including any special requests from the traveler. Your prompt action will help ensure a smooth booking process.";
+        $notificationMessage = "Booking request sent by traveler '$travelerUsername' for Booking ID: $bookingID. Please review the booking details and confirm or reject the request at your earliest convenience.";
         $stmt = $conn->prepare("INSERT INTO notifications (bookingID, notificationMessage, userID, isRead) VALUES (?, ?, ?, '0')");
         $stmt->bind_param("isi", $bookingID, $notificationMessage, $merchantID);
         $stmt->execute();

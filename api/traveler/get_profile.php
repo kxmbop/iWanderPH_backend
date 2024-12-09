@@ -30,7 +30,7 @@ if (!empty($token)) {
             echo json_encode(['status' => 'error', 'message' => 'Unauthorized access']);
             exit;
         }
-
+        // echo ("TRAVELER: ". $travelerID);
         // Fetch traveler profile information
 
         $profile_sql = "
@@ -45,13 +45,10 @@ if (!empty($token)) {
         $stmt->execute();
         $profile_result = $stmt->get_result();
 
-        if ($profile_result->num_rows == 1) {
             $profile_data = $profile_result->fetch_assoc();
             $profile_data['ProfilePic'] = base64_encode($profile_data['ProfilePic']);
             $response["profile"] = $profile_data;
-        } else {
-            $response["profile"] = null;
-        }
+
 
         // Fetch journey count for completed bookings
         $journey_sql = "SELECT COUNT(*) AS journey_count FROM booking WHERE TravelerID = ? AND BookingStatus = 'Completed'";
